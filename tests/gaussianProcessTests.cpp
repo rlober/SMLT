@@ -1,4 +1,7 @@
 #include <iostream>
+#include <stdlib.h>
+
+
 #include "Eigen/Dense"
 #include "smlt/gaussianProcess.hpp"
 #include "smlt/smltUtilities.hpp"
@@ -46,42 +49,42 @@ int main(int argc, char const *argv[])
     std::cout << "Calulating designMatrix and kernelWeights." << std::endl;
     gProcess.calculateParameters();
 
-    Eigen::MatrixXd meanMat, varMat;
-
-    Eigen::VectorXd testVec = Eigen::VectorXd::Random(2);
-    std::cout << "Testing getMeanAndVariance for one input vector." << std::endl;
-
-    gProcess.getMeanAndVariance(testVec, meanMat, varMat);
-    std::cout << "mean = \n" << meanMat << "\nvar = \n" << varMat << std::endl;
-
-
-    std::cout << "Testing getMeanAndVariance for multiple input vectors." << std::endl;
-    Eigen::MatrixXd testMat = Eigen::MatrixXd::Random(2,3);
-    gProcess.getMeanAndVariance(testMat, meanMat, varMat);
-    std::cout << "mean = \n" << meanMat << "\nvar = \n" << varMat << std::endl;
-
-
-
-    std::cout << "Adding kernel data. New centers:" << std::endl;
-    int newDataDim = 10;
-    Eigen::MatrixXd newCenters = Eigen::MatrixXd::Random(2,newDataDim);
-    std::cout << newCenters << std::endl;
-    Eigen::MatrixXd newTrainingData = Eigen::MatrixXd::Random(3,newDataDim);
-    std::cout << "\nNew training data:\n" << newTrainingData << std::endl;
-
-
-    gProcess.addNewKernelData(newCenters, newTrainingData);
-
-    std::cout << "Testing new data for multiple input vectors." << std::endl;
-    gProcess.getMeanAndVariance(testMat, meanMat, varMat);
-    std::cout << "mean = \n" << meanMat << "\nvar = \n" << varMat << std::endl;
-
-
-    std::cout << "\n\nRemoving newly added kernels..." << std::endl;
-    gProcess.removeRecentlyAddedKernelData();
-    std::cout << "Testing after removal for multiple input vectors." << std::endl;
-    gProcess.getMeanAndVariance(testMat, meanMat, varMat);
-    std::cout << "mean = \n" << meanMat << "\nvar = \n" << varMat << std::endl;
+    // Eigen::MatrixXd meanMat, varMat;
+    //
+    // Eigen::VectorXd testVec = Eigen::VectorXd::Random(2);
+    // std::cout << "Testing getMeanAndVariance for one input vector." << std::endl;
+    //
+    // gProcess.getMeanAndVariance(testVec, meanMat, varMat);
+    // std::cout << "mean = \n" << meanMat << "\nvar = \n" << varMat << std::endl;
+    //
+    //
+    // std::cout << "Testing getMeanAndVariance for multiple input vectors." << std::endl;
+    // Eigen::MatrixXd testMat = Eigen::MatrixXd::Random(2,3);
+    // gProcess.getMeanAndVariance(testMat, meanMat, varMat);
+    // std::cout << "mean = \n" << meanMat << "\nvar = \n" << varMat << std::endl;
+    //
+    //
+    //
+    // std::cout << "Adding kernel data. New centers:" << std::endl;
+    // int newDataDim = 10;
+    // Eigen::MatrixXd newCenters = Eigen::MatrixXd::Random(2,newDataDim);
+    // std::cout << newCenters << std::endl;
+    // Eigen::MatrixXd newTrainingData = Eigen::MatrixXd::Random(3,newDataDim);
+    // std::cout << "\nNew training data:\n" << newTrainingData << std::endl;
+    //
+    //
+    // gProcess.addNewKernelData(newCenters, newTrainingData);
+    //
+    // std::cout << "Testing new data for multiple input vectors." << std::endl;
+    // gProcess.getMeanAndVariance(testMat, meanMat, varMat);
+    // std::cout << "mean = \n" << meanMat << "\nvar = \n" << varMat << std::endl;
+    //
+    //
+    // std::cout << "\n\nRemoving newly added kernels..." << std::endl;
+    // gProcess.removeRecentlyAddedKernelData();
+    // std::cout << "Testing after removal for multiple input vectors." << std::endl;
+    // gProcess.getMeanAndVariance(testMat, meanMat, varMat);
+    // std::cout << "mean = \n" << meanMat << "\nvar = \n" << varMat << std::endl;
 
 
     std::string dirPath = "/home/ryan/Code/smlt/tmp1/";
@@ -89,6 +92,10 @@ int main(int argc, char const *argv[])
     std::cout << "Writing kernel data to: " << dirPath << std::endl;
     gProcess.writeDataToFile(dirPath, overwrite);
     gProcess.writeOutputToFile(dirPath, overwrite);
+
+
+    std::system(("python ./scripts/plotGaussianProcess.py " + dirPath).c_str());
+
 
     return 0;
 }

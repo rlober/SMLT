@@ -278,7 +278,7 @@ void gaussianProcess::writeDataToFile(std::string directoryPath, const bool over
 
 
     kernelCentersFile << kernelCenters;
-    kernelTrainingDataFile << kernelTrainingData;
+    kernelTrainingDataFile << kernelTrainingData.transpose();
     maximumCovarianceFile << maximumCovariance;
     covarianceMatrixFile << kernelFuncPtr->getCovarianceMatrix();
 
@@ -299,13 +299,14 @@ void gaussianProcess::writeOutputToFile(std::string directoryPath, const bool ov
     directoryPath += "gaussianProcessOutput/";
     checkAndCreateDirectory(directoryPath);
 
-    std::ofstream inputFile, kernelOutputFile, gaussianProcessMeanFile, gaussianProcessVarianceFile, inputMinMaxFile;
+    std::ofstream inputFile, kernelOutputFile, gaussianProcessMeanFile, gaussianProcessVarianceFile, inputMinMaxFile, weightsFile;
 
     std::string inputPath                       = directoryPath+"/"+"input.txt";
     std::string kernelOutputPath                = directoryPath+"/"+"kernelOutput.txt";
     std::string gaussianProcessMeanPath         = directoryPath+"/"+"gaussianProcessMean.txt";
     std::string gaussianProcessVariancePath     = directoryPath+"/"+"gaussianProcessVariance.txt";
     std::string inputMinMaxPath                 = directoryPath+"/"+"inputMinMax.txt";
+    std::string weightsPath                     = directoryPath+"/"+"weights.txt";
 
     std::ios_base::openmode mode;
     if (overwrite) {
@@ -320,10 +321,26 @@ void gaussianProcess::writeOutputToFile(std::string directoryPath, const bool ov
     gaussianProcessMeanFile.open(gaussianProcessMeanPath.c_str(), mode);
     gaussianProcessVarianceFile.open(gaussianProcessVariancePath.c_str(), mode);
     inputMinMaxFile.open(inputMinMaxPath.c_str(), mode);
+    weightsFile.open(weightsPath.c_str(), mode);
 
     Eigen::VectorXd mins = kernelCenters.rowwise().minCoeff();
     Eigen::VectorXd maxs = kernelCenters.rowwise().maxCoeff();
-    int nSteps = 100;
+
+    for(int i=0; i<mins.rows(); i++)
+    {
+        if (mins(i)<0) {
+            mins(i) *= 1.3;
+        }else{
+            mins(i) *= 0.7;
+        }
+        if (maxs(i)>0) {
+            maxs(i) *= 1.3;
+        }else{
+            maxs(i) *= 0.7;
+        }
+    }
+
+    int nSteps = 50;
 
     Eigen::MatrixXd input = discretizeSearchSpace(mins, maxs, nSteps);
 
@@ -337,13 +354,14 @@ void gaussianProcess::writeOutputToFile(std::string directoryPath, const bool ov
     gaussianProcessMeanFile << gpMean;
     gaussianProcessVarianceFile << gpVariance;
     inputMinMaxFile << mins.transpose() << std::endl << maxs.transpose();
-
+    weightsFile << kernelWeights;
 
     inputFile.close();
     kernelOutputFile.close();
     gaussianProcessMeanFile.close();
     gaussianProcessVarianceFile.close();
     inputMinMaxFile.close();
+    weightsFile.close();
 
     std::cout << "\nGaussian process output saved to: " << directoryPath << std::endl;
 }

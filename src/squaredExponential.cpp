@@ -130,7 +130,6 @@ void squaredExponential::writeDataToFile(std::string directoryPath, const bool o
     std::ofstream kernelCentersFile, covarianceMatrixFile;
 
     std::string kernelCentersPath       = directoryPath+"/"+"kernelCenters.txt";
-    std::string maximumCovariancePath   = directoryPath+"/"+"maximumCovariance.txt";
     std::string covarianceMatrixPath    = directoryPath+"/"+"covarianceMatrix.txt";
 
     std::ios_base::openmode mode;
@@ -182,12 +181,38 @@ void squaredExponential::writeOutputToFile(std::string directoryPath, const bool
 
     Eigen::VectorXd mins = kernelCenters.rowwise().minCoeff();
     Eigen::VectorXd maxs = kernelCenters.rowwise().maxCoeff();
-    int nSteps = 100;
+
+    // mins -= (mins*0.3);
+    // maxs += (maxs*0.3);
+
+    for(int i=0; i<mins.rows(); i++)
+    {
+        if (mins(i)<0) {
+            mins(i) *= 1.3;
+        }else{
+            mins(i) *= 0.7;
+        }
+        if (maxs(i)>0) {
+            maxs(i) *= 1.3;
+        }else{
+            maxs(i) *= 0.7;
+        }
+    }
+    int nSteps;
+
+    if (kernelDimension<=3) {
+        nSteps = 50;
+    }else{
+        nSteps = 8;
+    }
 
     Eigen::MatrixXd kernelInput = discretizeSearchSpace(mins, maxs, nSteps);
 
     Eigen::MatrixXd kernelOutput;
+
+    std::cout << "\nEvaluating kernels over the discretized search space. This could take a minute..." << std::endl;
     evaluate(kernelInput, kernelOutput);
+    std::cout << "Done!" << std::endl;
 
 
 

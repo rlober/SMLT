@@ -1,5 +1,7 @@
 #include <iostream>
 #include <ctime>
+#include <stdlib.h>
+
 #include "Eigen/Dense"
 #include "smlt/squaredExponential.hpp"
 
@@ -10,9 +12,9 @@ int main(int argc, char const *argv[])
     std::cout << "\n\n========= BEGINING TESTS =========\n\n" << std::endl;
 
 
-    Eigen::MatrixXd centers(2,2);
-    centers << 1, 2,
-               3, 4;
+    Eigen::MatrixXd centers(2,4);
+    centers << 1, 2, 0, -1,
+               3, 4, 5, -2;
 
     squaredExponential kern(centers);
 
@@ -26,6 +28,14 @@ int main(int argc, char const *argv[])
     std::cout << "\nChecking kernel::evaluate() for one input point:\n" << evalVec << "\n";
     kern.evaluate(evalVec, output);
     std::cout << "\noutput:\n" << output << std::endl;
+
+    std::string dirPath = "/home/ryan/Code/smlt/tmp2/";
+
+    kern.writeDataToFile(dirPath, true);
+    kern.writeOutputToFile(dirPath, true);
+
+    std::system(("python ./scripts/plotKernelOutput.py " + dirPath).c_str());
+
 
 
     Eigen::MatrixXd evalVecs = Eigen::MatrixXd::Random(2,5);

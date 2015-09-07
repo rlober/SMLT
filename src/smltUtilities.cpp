@@ -152,6 +152,7 @@ Eigen::MatrixXd ndGrid(Eigen::MatrixXd& vectorsToCombine, bool combineColWise)
         Eigen::MatrixXd comboMat = Eigen::MatrixXd::Zero(nCols, nCombos);
         Eigen::VectorXi indexVector = Eigen::VectorXi::Zero(nCols);
         int colCounter = 0;
+        int id0_old = 0;
 
         // This trickyness courtesy of: http://stackoverflow.com/questions/1700079/howto-create-combinations-of-several-vectors-without-hardcoding-loops-in-c#answer-1703575
         while (indexVector(0) < nRows)
