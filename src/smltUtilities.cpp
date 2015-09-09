@@ -4,7 +4,6 @@ namespace smlt{
 
 Eigen::VectorXd getVariance(const Eigen::MatrixXd& inputMat)
 {
-    std::cout << "Test 1" << std::endl;
     Eigen::VectorXd result = Eigen::VectorXd::Zero(inputMat.cols());
     for (size_t j = 0; j < inputMat.cols(); j++) {
         result.row(j) << getVariance(Eigen::VectorXd(inputMat.col(j)));
@@ -92,9 +91,7 @@ Eigen::MatrixXd discretizeSearchSpace(Eigen::VectorXd& minVals, Eigen::VectorXd&
 
     int dim = minVals.rows();
     Eigen::MatrixXd centersMat = Eigen::MatrixXd::Zero(nSteps, dim);
-    // int nSearchCenters = pow(nSteps, dim);
-    //
-    // Eigen::MatrixXd searchSpaceMat = Eigen::MatrixXd::Zero(dim, nSearchCenters);
+
     Eigen::MatrixXd searchSpaceMat;
 
     if (minVals.rows()==maxVals.rows())
@@ -105,25 +102,6 @@ Eigen::MatrixXd discretizeSearchSpace(Eigen::VectorXd& minVals, Eigen::VectorXd&
         }
 
         searchSpaceMat = ndGrid(centersMat, true);
-        // This trickyness courtesy of: http://stackoverflow.com/questions/1700079/howto-create-combinations-of-several-vectors-without-hardcoding-loops-in-c#answer-1703575
-
-        // Eigen::VectorXi indexVector = Eigen::VectorXi::Zero(dim);
-        // int colCounter = 0;
-        // while (indexVector(0) < nSteps)
-        // {
-        //     for(int j=0; j<dim; j++)
-        //     {
-        //         searchSpaceMat(j, colCounter) = centersMat(indexVector(j), j);
-        //     }
-        //     indexVector(dim-1)++;
-        //     for (int i=dim-1; (i>0) && (indexVector(i)==nSteps); i--)
-        //     {
-        //         indexVector(i) = 0;
-        //         indexVector(i-1)++;
-        //     }
-        //     colCounter++;
-        // }
-
     }
     else {
         smltError("Min and max vectors must be the same dimension. You passed, Min = " << minVals.rows() << "x" << minVals.cols() << " and Max = "  << maxVals.rows() << "x" << maxVals.cols() << ".");

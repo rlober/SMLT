@@ -10,17 +10,17 @@ gaussianProcess::gaussianProcess()
 
 void gaussianProcess::train(const Eigen::VectorXd& input, const Eigen::VectorXd& output)
 {
-    train(Eigen::MatrixXd(input), Eigen::MatrixXd(output));
+    train(Eigen::MatrixXd(input.transpose()), Eigen::MatrixXd(output.transpose()));
 }
 
 void gaussianProcess::train(const Eigen::VectorXd& input, const Eigen::MatrixXd& output)
 {
-    train(Eigen::MatrixXd(input), output);
+    train(Eigen::MatrixXd(input.transpose()), output);
 }
 
 void gaussianProcess::train(const Eigen::MatrixXd& input, const Eigen::VectorXd& output)
 {
-    train(input, Eigen::MatrixXd(output));
+    train(input, Eigen::MatrixXd(output.transpose()));
 }
 
 
@@ -116,7 +116,7 @@ void gaussianProcess::getMeanAndVariance(const Eigen::VectorXd& inputVector, Eig
 
         mean = (kernelOutput * kernelWeights).transpose(); // Kern out = [1 x Nc], kernweights = [Nc, outputDimension]
 
-        variance = maximumCovariance - (maximumCovariance.array().square() * (kernelOutput * designMatrixInv * kernelOutput.transpose()).replicate(outputDimension,1).array()).matrix();    }
+        variance = maximumCovariance - (maximumCovariance.array() * (kernelOutput * designMatrixInv * kernelOutput.transpose()).replicate(outputDimension,1).array()).matrix();    }
     else
     {
         if (!check1) {
@@ -148,7 +148,11 @@ void gaussianProcess::getMeanAndVariance(const Eigen::MatrixXd& inputVectors, Ei
 
         kernelOutput.transposeInPlace();
 
-        variances = maximumCovariance.replicate(1,numberOfInputs) -  (maximumCovariance.array().square().replicate(1,numberOfInputs).array() * ((kernelOutput.array() * (designMatrixInv * kernelOutput).array()).colwise().sum() ).replicate(outputDimension,1).array()).matrix();
+        variances = maximumCovariance.replicate(1,numberOfInputs) -  (maximumCovariance.array().replicate(1,numberOfInputs).array() * ((kernelOutput.array() * (designMatrixInv * kernelOutput).array()).colwise().sum() ).replicate(outputDimension,1).array()).matrix();
+
+
+        // variances = -((((kernelOutput.array() * (designMatrixInv * kernelOutput).array()).colwise().sum() ).replicate(outputDimension,1)).colwise() * maximumCovariance.array()).colwise() + maximumCovariance;
+
     }
     else
     {
@@ -330,12 +334,21 @@ void gaussianProcess::writeOutputToFile(std::string directoryPath, const bool ov
     {
         if (mins(i)<0) {
             mins(i) *= 1.3;
-        }else{
+        }
+        else if(mins(i)==0){
+            mins(i) -= 0.1*maxs(i);
+        }
+        else{
             mins(i) *= 0.7;
         }
+
         if (maxs(i)>0) {
             maxs(i) *= 1.3;
-        }else{
+        }
+        else if(maxs(i)==0){
+            maxs(i) += -0.1*mins(i);
+        }
+        else{
             maxs(i) *= 0.7;
         }
     }

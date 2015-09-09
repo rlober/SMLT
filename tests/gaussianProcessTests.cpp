@@ -12,42 +12,45 @@ int main(int argc, char const *argv[])
 {
     gaussianProcess gProcess;
 
-    Eigen::MatrixXd inputData(2,2);
-    inputData << -1, 2,
-                 -3, 4;
-
-    Eigen::MatrixXd outputSamples;
-
-    Eigen::MatrixXd outputSamples1(1,2);
-    outputSamples1 << 1.5, 2.5;
+    Eigen::MatrixXd inputData(1,2);
+    inputData << 0.0, 3.5;
 
 
-    Eigen::MatrixXd outputSamples2(3,2);
-    outputSamples2 <<   1.5, 0.1,
-                        -1.0, -0.2,
-                        2.5, 3.1;
+    Eigen::MatrixXd outputSamples(3,2);
+    outputSamples <<    1.5,     1.2,
+                        -1.0,    -0.41,
+                        2.5,     2.9;
 
 
-    outputSamples = outputSamples2;
+    Eigen::MatrixXd Sigma = calculateCovariance(inputData, true)*0.5;
+    Eigen::VectorXd maxCov = getVariance(Eigen::MatrixXd(outputSamples.transpose()));
+    // Eigen::VectorXd maxCov = Eigen::VectorXd::Ones(3);
 
+    std::cout << "\ninputData\n" << inputData << std::endl;
+    std::cout << "\noutputSamples\n" << outputSamples << std::endl;
+    std::cout << "\ncovariance matrix\n" << Sigma << std::endl;
+    std::cout << "\nmaximum covariance\n" << maxCov << std::endl;
 
-    std::cout << "inputData\n" << inputData << std::endl;
-    std::cout << "outputSamples\n" << outputSamples << std::endl;
-
-    std::cout << "Setting kernel centers." << std::endl;
     gProcess.setKernelCenters(inputData);
-
-    std::cout << "Setting training data to:\n" << outputSamples << std::endl;
     gProcess.setKernelTrainingData(outputSamples);
-
-    std::cout << "Setting covariance matrix to:\n" << calculateCovariance(inputData, true) << std::endl;
-    gProcess.setCovarianceMatrix(calculateCovariance(inputData, true));
-
-    std::cout << "Setting maximum covariance to:\n" << getVariance(Eigen::MatrixXd(outputSamples.transpose())) << std::endl;
-    gProcess.setMaxCovariance(getVariance(Eigen::MatrixXd(outputSamples.transpose())));
+    gProcess.setCovarianceMatrix(Sigma);
+    gProcess.setMaxCovariance(maxCov);
 
     std::cout << "Calulating designMatrix and kernelWeights." << std::endl;
     gProcess.calculateParameters();
+
+
+    std::string dirPath = "/home/ryan/Code/smlt/tmp1/";
+    bool overwrite = true;
+    std::cout << "Writing kernel data to: " << dirPath << std::endl;
+    gProcess.writeDataToFile(dirPath, overwrite);
+    gProcess.writeOutputToFile(dirPath, overwrite);
+
+
+    std::system(("python ./scripts/plotGaussianProcess.py " + dirPath).c_str());
+
+
+    return 0;
 
     // Eigen::MatrixXd meanMat, varMat;
     //
@@ -87,15 +90,5 @@ int main(int argc, char const *argv[])
     // std::cout << "mean = \n" << meanMat << "\nvar = \n" << varMat << std::endl;
 
 
-    std::string dirPath = "/home/ryan/Code/smlt/tmp1/";
-    bool overwrite = true;
-    std::cout << "Writing kernel data to: " << dirPath << std::endl;
-    gProcess.writeDataToFile(dirPath, overwrite);
-    gProcess.writeOutputToFile(dirPath, overwrite);
 
-
-    std::system(("python ./scripts/plotGaussianProcess.py " + dirPath).c_str());
-
-
-    return 0;
 }

@@ -12,7 +12,9 @@
 #include <boost/filesystem.hpp>
 
 #include <unistd.h>
+#include <math.h>
 
+// #define M_PI 3.14159265359
 
 #define smltError(errorMsg) std::cout<<"\n+++++++++++++++\n+++ [ERROR] +++\n+++++++++++++++\nfile: " << __FILE__ <<"\nfunction: " <<__func__<<"\nline: "<< __LINE__ <<"\nmessage: "<< errorMsg << "\n\n"
 
@@ -45,7 +47,6 @@ namespace smlt
     {
         int nCols = inputMat.cols();
         Eigen::MatrixXd dispMat = inputMat - inputMat.rowwise().mean().replicate(1,nCols);
-
         Eigen::MatrixXd result = (dispMat * dispMat.transpose()) / (nCols-1);
         if (diagonalOnly) {
             return result.diagonal().asDiagonal();
