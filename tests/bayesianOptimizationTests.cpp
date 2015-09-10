@@ -22,6 +22,8 @@ int main(int argc, char const *argv[])
 
     bopt_Parameters bopt_params = bopt_Parameters();
 
+    bopt_params.dataLogDir = "/home/ryan/Code/smlt/tmp3/";
+
     bayesianOptimization bopt_solver = bayesianOptimization(bopt_params);
 
     bopt_Solution bopt_solution;

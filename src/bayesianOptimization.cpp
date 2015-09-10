@@ -7,7 +7,9 @@ using namespace smlt;
 bayesianOptimization::bayesianOptimization(const bopt_Parameters optParams) :
 optParameters(optParams)
 {
-
+    if (optParameters.logData) {
+        createDataLog();
+    }
 }
 
 bopt_Solution bayesianOptimization::initialize(const Eigen::VectorXd& centerData, const Eigen::VectorXd& costData)
@@ -77,60 +79,65 @@ bopt_Solution bayesianOptimization::update(const Eigen::MatrixXd& newCenters, co
 
 bopt_Solution bayesianOptimization::solve()
 {
-    bopt_Solution solution;
+
     numberOfIterations++;
 
     int minIndex;
     minimizeAcquistionFunction(minIndex);
 
-    solution.currentMinCost = currentCostMeans(0,minIndex);
-    solution.currentConfidence = (1. - currentCostVariances(0,minIndex))*100.;
+    currentSolution.currentMinCost = currentCostMeans(0,minIndex);
+    currentSolution.currentConfidence = (1. - currentCostVariances(0,minIndex))*100.;
 
-    solution.optimalParameters = searchSpace.col(minIndex);
-    solution.nIter = numberOfIterations;
+    currentSolution.optimalParameters = searchSpace.col(minIndex);
+    currentSolution.nIter = numberOfIterations;
 
-    bool isConfident = (solution.currentConfidence>= optParameters.minConfidence);
-    bool isMaxIter = (solution.nIter >= optParameters.maxIter);
-    solution.optimumFound = isConfident || isMaxIter;
+    bool isConfident = (currentSolution.currentConfidence>= optParameters.minConfidence);
+    bool isMaxIter = (currentSolution.nIter >= optParameters.maxIter);
+    currentSolution.optimumFound = isConfident || isMaxIter;
+
+    if (optParameters.logData) {
+        logOptimizationData();
+    }
 
     if (!optParameters.silenceOutput)
     {
-        if (solution.optimumFound) {
+        if (currentSolution.optimumFound) {
             if (isConfident) {
                 std::cout << "\n================================================================================\n";
-                std::cout << "\tOptimum found with high confidence in "<< solution.nIter <<" iterations!";
+                std::cout << "\tOptimum found with high confidence in "<< currentSolution.nIter <<" iterations!";
                 std::cout << "\n================================================================================\n";
-                std::cout << "\tOptimum = " << solution.currentMinCost << std::endl;
-                std::cout << "\tConfidence = " << solution.currentConfidence  << "%"<< std::endl;
-                std::cout << "\tOptimal parameters = " <<  solution.optimalParameters.transpose() << std::endl;
+                std::cout << "\tOptimum = " << currentSolution.currentMinCost << std::endl;
+                std::cout << "\tConfidence = " << currentSolution.currentConfidence  << "%"<< std::endl;
+                std::cout << "\tOptimal parameters = " <<  currentSolution.optimalParameters.transpose() << std::endl;
                 std::cout << "\n================================================================================" << std::endl;
             }
             if (isMaxIter) {
                 std::cout << "\n================================================================================\n";
                 std::cout << "\tWARNING: Maximum number of iterations ("<< optParameters.maxIter <<") exceeded.";
                 std::cout << "\n================================================================================\n";
-                std::cout << "\tCurrent optimum = " << solution.currentMinCost << std::endl;
-                std::cout << "\tConfidence = " << solution.currentConfidence  << "%"<< std::endl;
-                std::cout << "\tCurrent optimal parameters = " <<  solution.optimalParameters.transpose() << std::endl;
+                std::cout << "\tCurrent optimum = " << currentSolution.currentMinCost << std::endl;
+                std::cout << "\tConfidence = " << currentSolution.currentConfidence  << "%"<< std::endl;
+                std::cout << "\tCurrent optimal parameters = " <<  currentSolution.optimalParameters.transpose() << std::endl;
                 std::cout << "\n================================================================================" << std::endl;
             }
         }
         else{
             std::cout << "\n========================================\n";
             std::cout << "Optimization iteration: " << numberOfIterations << std::endl;
-            std::cout << "-> Current minimum = " << solution.currentMinCost << std::endl;
-            std::cout << "-> Confidence = " << solution.currentConfidence  << "%"<< std::endl;
-            std::cout << "-> Optimal test parameters = " <<  solution.optimalParameters.transpose() << std::endl;
+            std::cout << "-> Current minimum = " << currentSolution.currentMinCost << std::endl;
+            std::cout << "-> Confidence = " << currentSolution.currentConfidence  << "%"<< std::endl;
+            std::cout << "-> Optimal test parameters = " <<  currentSolution.optimalParameters.transpose() << std::endl;
             std::cout << "========================================\n" << std::endl;
         }
     }
-    return solution;
+    return currentSolution;
 }
 
 void bayesianOptimization::minimizeAcquistionFunction(int& optimalIndex)
 {
-    double tau = tauFunction(numberOfIterations);
-    Eigen::MatrixXd LCB = currentCostMeans - sqrt(tau)*currentCostVariances;
+    tau = tauFunction(numberOfIterations);
+    LCB = currentCostMeans - sqrt(tau)*currentCostVariances;
+
     Eigen::MatrixXd::Index dummy, idx;
     LCB.minCoeff(&dummy, &idx);
     optimalIndex = idx;
@@ -177,6 +184,61 @@ void bayesianOptimization::updateGaussianProcess()
     costGP->getMeanAndVariance(searchSpace, currentCostMeans, currentCostVariances);
 
 }
+
+void bayesianOptimization::createDataLog()
+{
+
+    optLogPath = optParameters.dataLogDir + "/optimization_log-" + currentDateTime() +"/";
+    checkAndCreateDirectory(optLogPath);
+
+    std::ofstream pathFile;
+    pathFile.open((optParameters.dataLogDir+"/latestLogPath.txt").c_str());
+    pathFile << optLogPath << std::endl;
+    pathFile.close();
+}
+
+void bayesianOptimization::logOptimizationData()
+{
+    std::ostringstream it_stream;
+    it_stream << numberOfIterations;
+    std::string currentIterDir = optLogPath + "/" + it_stream.str()+ "/";
+    checkAndCreateDirectory(currentIterDir);
+
+    std::ofstream optParamsFile, optimumFoundFile, currentMinCostFile, currentConfidenceFile, optimalParametersFile, currentCostMeansFile, currentCostVariancesFile, LCBFile;
+
+
+
+    optParamsFile.open((currentIterDir+"optParams.txt").c_str());
+    optimumFoundFile.open((currentIterDir+"optimumFound.txt").c_str());
+    currentMinCostFile.open((currentIterDir+"currentMinCost.txt").c_str());
+    currentConfidenceFile.open((currentIterDir+"currentConfidence.txt").c_str());
+    optimalParametersFile.open((currentIterDir+"optimalParameters.txt").c_str());
+    currentCostMeansFile.open((currentIterDir+"currentCostMeans.txt").c_str());
+    currentCostVariancesFile.open((currentIterDir+"currentCostVariances.txt").c_str());
+    LCBFile.open((currentIterDir+"LCB.txt").c_str());
+
+    optParamsFile               <<  optParameters;
+    optimumFoundFile            <<  currentSolution.optimumFound;
+    currentMinCostFile          <<  currentSolution.currentMinCost;
+    currentConfidenceFile       <<  currentSolution.currentConfidence;
+    optimalParametersFile       <<  currentSolution.optimalParameters;
+    currentCostMeansFile        <<  currentCostMeans;
+    currentCostVariancesFile    <<  currentCostVariances;
+    LCBFile                     <<  LCB;
+
+
+    optParamsFile.close();
+    optimumFoundFile.close();
+    currentMinCostFile.close();
+    currentConfidenceFile.close();
+    optimalParametersFile.close();
+    currentCostMeansFile.close();
+    currentCostVariancesFile.close();
+    LCBFile.close();
+
+
+}
+
 
 void bayesianOptimization::setLoggerStatus(const bool logOptData)
 {

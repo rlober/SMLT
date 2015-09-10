@@ -71,7 +71,7 @@ const std::string currentDateTime()
 void checkAndCreateDirectory(const std::string dirPath)
 {
     if (!boost::filesystem::exists(dirPath)) {
-        boost::filesystem::create_directory(dirPath);
+        boost::filesystem::create_directories(dirPath);
     }
 }
 

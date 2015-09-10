@@ -3,6 +3,8 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
+#include <ostream>
 #include <stdlib.h>
 #include <math.h>
 
@@ -28,6 +30,7 @@ namespace smlt
         bopt_Parameters() // Set optimization parameters to their default values.
         {
             logData = true;
+            dataLogDir = "./";
             silenceOutput = false;
             minConfidence = 99.99;
             maxIter = 50;
@@ -36,6 +39,19 @@ namespace smlt
         bool silenceOutput; // no cout statements
         double minConfidence;
         int maxIter;
+        std::string dataLogDir;
+
+        friend std::ostream& operator<<(std::ostream &out, const bopt_Parameters& params)
+        {
+            out << "logData = " << params.logData << std::endl;
+            out << "dataLogDir = " << params.dataLogDir << std::endl;
+            out << "silenceOutput = " << params.silenceOutput << std::endl;
+            out << "minConfidence = " << params.minConfidence << std::endl;
+            out << "maxIter = " << params.maxIter << std::endl;
+            return out;
+        }
+
+
     };
 
     class bayesianOptimization
@@ -72,7 +88,13 @@ namespace smlt
         void minimizeAcquistionFunction(int& optimalIndex);
         double tauFunction(const int t);
 
+        void createDataLog();
+        void logOptimizationData();
 
+        std::string optLogPath;
+        double tau;
+        Eigen::MatrixXd LCB;
+        bopt_Solution currentSolution;
 
         gaussianProcess* costGP;        /*!< The gaussian process estimating the cost function. */
         int numberOfIterations;         /*!< The current number of iterations of the optimization.*/
