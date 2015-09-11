@@ -37,6 +37,9 @@ bopt_Solution bayesianOptimization::initialize(const Eigen::MatrixXd& centerData
     Eigen::VectorXd mins = gpCenters.rowwise().minCoeff();
     Eigen::VectorXd maxs = gpCenters.rowwise().maxCoeff();
 
+    searchSpaceBounds.resize(2, mins.rows());
+    searchSpaceBounds << mins.transpose(), maxs.transpose();
+
     int nSteps = 50;
 
     searchSpace = discretizeSearchSpace(mins, maxs, nSteps);
@@ -82,13 +85,13 @@ bopt_Solution bayesianOptimization::solve()
 
     numberOfIterations++;
 
-    int minIndex;
-    minimizeAcquistionFunction(minIndex);
 
-    currentSolution.currentMinCost = currentCostMeans(0,minIndex);
-    currentSolution.currentConfidence = (1. - currentCostVariances(0,minIndex))*100.;
+    minimizeAcquistionFunction(currentSolution.minIndex);
 
-    currentSolution.optimalParameters = searchSpace.col(minIndex);
+    currentSolution.currentMinCost = currentCostMeans(0,currentSolution.minIndex);
+    currentSolution.currentConfidence = (1. - currentCostVariances(0,currentSolution.minIndex))*100.;
+
+    currentSolution.optimalParameters = searchSpace.col(currentSolution.minIndex);
     currentSolution.nIter = numberOfIterations;
 
     bool isConfident = (currentSolution.currentConfidence>= optParameters.minConfidence);
@@ -193,8 +196,13 @@ void bayesianOptimization::createDataLog()
 
     std::ofstream pathFile;
     pathFile.open((optParameters.dataLogDir+"/latestLogPath.txt").c_str());
-    pathFile << optLogPath << std::endl;
+    pathFile << optLogPath;
     pathFile.close();
+
+    std::ofstream optParamsFile;
+    optParamsFile.open((optLogPath+"/optParams.txt").c_str());
+    optParamsFile << optParameters;
+    optParamsFile.close();
 }
 
 void bayesianOptimization::logOptimizationData()
@@ -204,11 +212,15 @@ void bayesianOptimization::logOptimizationData()
     std::string currentIterDir = optLogPath + "/" + it_stream.str()+ "/";
     checkAndCreateDirectory(currentIterDir);
 
-    std::ofstream optParamsFile, optimumFoundFile, currentMinCostFile, currentConfidenceFile, optimalParametersFile, currentCostMeansFile, currentCostVariancesFile, LCBFile;
+    std::ofstream gpParamsFile, gpWeightsFile, gpCostsFile, minIndexFile, optimumFoundFile, currentMinCostFile, currentConfidenceFile, optimalParametersFile, currentCostMeansFile, currentCostVariancesFile, LCBFile, searchSpaceFile, searchSpaceBoundsFile, tauFile;
 
 
 
-    optParamsFile.open((currentIterDir+"optParams.txt").c_str());
+    gpParamsFile.open((currentIterDir+"gpParams.txt").c_str());
+    gpWeightsFile.open((currentIterDir+"gpWeights.txt").c_str());
+    gpCostsFile.open((currentIterDir+"gpCosts.txt").c_str());
+
+    minIndexFile.open((currentIterDir+"minIndex.txt").c_str());
     optimumFoundFile.open((currentIterDir+"optimumFound.txt").c_str());
     currentMinCostFile.open((currentIterDir+"currentMinCost.txt").c_str());
     currentConfidenceFile.open((currentIterDir+"currentConfidence.txt").c_str());
@@ -216,8 +228,16 @@ void bayesianOptimization::logOptimizationData()
     currentCostMeansFile.open((currentIterDir+"currentCostMeans.txt").c_str());
     currentCostVariancesFile.open((currentIterDir+"currentCostVariances.txt").c_str());
     LCBFile.open((currentIterDir+"LCB.txt").c_str());
+    searchSpaceFile.open((currentIterDir+"searchSpace.txt").c_str());
+    searchSpaceBoundsFile.open((currentIterDir+"searchSpaceBounds.txt").c_str());
+    tauFile.open((currentIterDir+"tau.txt").c_str());
 
-    optParamsFile               <<  optParameters;
+
+    gpParamsFile                <<  gpCenters;
+    gpWeightsFile               <<  costGP->getWeights();
+    gpCostsFile                 <<  gpTrainingData;
+
+    minIndexFile                <<  currentSolution.minIndex;
     optimumFoundFile            <<  currentSolution.optimumFound;
     currentMinCostFile          <<  currentSolution.currentMinCost;
     currentConfidenceFile       <<  currentSolution.currentConfidence;
@@ -225,9 +245,17 @@ void bayesianOptimization::logOptimizationData()
     currentCostMeansFile        <<  currentCostMeans;
     currentCostVariancesFile    <<  currentCostVariances;
     LCBFile                     <<  LCB;
+    searchSpaceFile             <<  searchSpace;
+    searchSpaceBoundsFile       <<  searchSpaceBounds;
+    tauFile                     <<  tau;
 
 
-    optParamsFile.close();
+
+    gpParamsFile.close();
+    gpWeightsFile.close();
+    gpCostsFile.close();
+
+    minIndexFile.close();
     optimumFoundFile.close();
     currentMinCostFile.close();
     currentConfidenceFile.close();
@@ -235,6 +263,9 @@ void bayesianOptimization::logOptimizationData()
     currentCostMeansFile.close();
     currentCostVariancesFile.close();
     LCBFile.close();
+    searchSpaceFile.close();
+    searchSpaceBoundsFile.close();
+    tauFile.close();
 
 
 }

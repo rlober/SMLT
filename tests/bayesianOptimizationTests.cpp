@@ -1,13 +1,17 @@
 #include <iostream>
 #include "Eigen/Dense"
 #include "smlt/bayesianOptimization.hpp"
+#include <stdlib.h>
+
+
 
 using namespace std;
 using namespace smlt;
 
 Eigen::VectorXd costFunction(const Eigen::VectorXd& input)
 {
-    Eigen::VectorXd output = input.array().square().sin();
+    // Eigen::VectorXd output = input.array().square().sin();
+    Eigen::VectorXd output = input.array().sin()*3.33 + input.array().square()/10.0 + input.array().pow(3)/100.0;
 
     return output;
 }
@@ -15,7 +19,8 @@ Eigen::VectorXd costFunction(const Eigen::VectorXd& input)
 
 int main(int argc, char const *argv[])
 {
-    Eigen::VectorXd centerData = Eigen::VectorXd::Random(3);
+    Eigen::VectorXd centerData(2);
+    centerData << 1.0, 7.12;
 
     Eigen::VectorXd costData = costFunction(centerData);
 
@@ -39,6 +44,9 @@ int main(int argc, char const *argv[])
         bopt_solution = bopt_solver.update(bopt_solution.optimalParameters, newCost);
 
     }
+
+
+    std::system(("python ./scripts/plotBayesianOptimization.py "+ bopt_params.dataLogDir).c_str());
 
 
     return 0;

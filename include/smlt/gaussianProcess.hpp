@@ -47,6 +47,8 @@ namespace smlt
         void writeDataToFile(std::string directoryPath="./", const bool overwrite=false);
         void writeOutputToFile(std::string directoryPath="./", const bool overwrite=false);
 
+        Eigen::MatrixXd getWeights(){return kernelWeights;}
+
 
 
     protected:

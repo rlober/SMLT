@@ -21,6 +21,7 @@ namespace smlt
         double currentMinCost;  // The current minimum cost.
         double currentConfidence; // The current confidence in the minimum cost found.
         int nIter; // The number of optimization iterations so far
+        int minIndex; // The index of the minimum LCB value.
 
         Eigen::VectorXd optimalParameters; // The best parameters to use in the cost function.
     };
@@ -102,6 +103,7 @@ namespace smlt
         /*!< The minimum confidence needed to consider a candidate solution an optimum. */
 
         Eigen::MatrixXd searchSpace;    /*!< The hyperrectangular search space of the optimization. */
+        Eigen::MatrixXd searchSpaceBounds;
 
         bopt_Parameters optParameters;
 
