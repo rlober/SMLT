@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 2.8.11)
 set(projectName smlt)
 project(${projectName})
 
+set(smlt_MAJOR_VERSION 0)
+set(smlt_MINOR_VERSION 1)
+set(smlt_PATCH_VERSION 0)
+set(smlt_VERSION
+${smlt_MAJOR_VERSION}.${smlt_MINOR_VERSION}.${smlt_PATCH_VERSION})
+
+
 # include(CheckCXXCompilerFlag)
 # CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 # CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
@@ -49,3 +56,6 @@ install(FILES ${python_scripts} DESTINATION bin/scripts)
 
 # Build unit tests
 add_subdirectory(tests)
+
+#pkg-config
+add_subdirectory(pkg-config)
