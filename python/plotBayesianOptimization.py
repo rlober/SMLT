@@ -132,6 +132,7 @@ if kernelDim==1:
     gpTrain_line, = ax_gp.plot([], [], 'bo', ms=10)
     gpNext_line, = ax_gp.plot([], [], color='yellow', marker='v', ms=10)
     true_cost_line, = ax_gp.plot(searchSpace[0], trueCost, 'g--', linewidth=2)
+    # fill_poly = ax_gp.fill_between([], [], [], alpha=var_alpha, facecolor=var_color, edgecolor=None)
 
 
     var_plot = plt.Rectangle((0, 0), 1, 1, alpha=var_alpha, facecolor=var_color, edgecolor=None)
@@ -162,45 +163,60 @@ if kernelDim==1:
     ax_tau.set_ylim(tauMin, tauMax)
     ax_tau.set_xlim(1, len(onlyDir))
 
-    # ax_gp.cla()
-    # for coll in ax_gp.collections:
-    #     ax_gp.collections.remove(coll)
-    #
-    # def init():
-    #     gpMean_line.set_data([],[])
-    #     gpTrain_line.set_data([],[])
-    #     gpNext_line.set_data([],[])
-    #
-    #
-    #     lcb_line.set_data([],[])
-    #     lcbMin_line.set_data([],[])
-    #
-    #     tau_line.set_data([],[])
-    #
-    #     # fill_poly = ax_gp.fill_between([], [], [])
-    #
-    #
-    #     return gpMean_line, gpTrain_line, gpNext_line, lcb_line, lcbMin_line, tau_line#, fill_poly
 
     def animate(i):
         currentMinIndex = int(minIndex[i])
 
-        # ax_gp.clear()
-        gpMean_line.set_data(searchSpace[i], gpMean[i])
-        gpTrain_line.set_data(gpParams[i], gpCosts[i])
-        gpNext_line.set_data(searchSpace[i][currentMinIndex], gpMean[i][currentMinIndex])
+        if i>0:
+
+            gpMean_line.set_data(searchSpace[i], gpMean[i])
+            gpTrain_line.set_data(gpParams[i], gpCosts[i])
+            gpNext_line.set_data(searchSpace[i][currentMinIndex], gpMean[i][currentMinIndex])
 
 
-        lcb_line.set_data( searchSpace[i], LCB[i])
-        lcbMin_line.set_data(searchSpace[i][currentMinIndex], LCB[i][currentMinIndex])
+            lcb_line.set_data( searchSpace[i], LCB[i])
+            lcbMin_line.set_data(searchSpace[i][currentMinIndex], LCB[i][currentMinIndex])
+
+            upperVar = gpMean[i] - gpVariance[i]
+            lowerVar = gpMean[i] + gpVariance[i]
+
+            fill_poly = ax_gp.fill_between(searchSpace[i], upperVar, lowerVar, alpha=var_alpha, facecolor=var_color, edgecolor=None)
 
 
-        upperVar = gpMean[i] - gpVariance[i]
-        lowerVar = gpMean[i] + gpVariance[i]
+            # if i>0:
+            #
+            #     upperVar = gpMean[i] - gpVariance[i]
+            #     lowerVar = gpMean[i] + gpVariance[i]
+            #
+            #     fill_poly = ax_gp.fill_between(searchSpace[i], upperVar, lowerVar, alpha=var_alpha, facecolor=var_color, edgecolor=None)
+            # else:
+            #     fill_poly = ax_gp.fill_between([], [], [], alpha=var_alpha, facecolor=var_color, edgecolor=None)
 
-        fill_poly = ax_gp.fill_between(searchSpace[i], upperVar, lowerVar, alpha=var_alpha, facecolor=var_color, edgecolor=None)
 
-        tau_line.set_data( range(1, i+2), tau[:i+1])
+            tau_line.set_data( range(1, i+2), tau[:i+1])
+
+        else:
+            gpMean_line.set_data(searchSpace[i], gpMean[i])
+            gpTrain_line.set_data(gpParams[i], gpCosts[i])
+            gpNext_line.set_data(searchSpace[i][currentMinIndex], gpMean[i][currentMinIndex])
+
+
+            lcb_line.set_data( searchSpace[i], LCB[i])
+            lcbMin_line.set_data(searchSpace[i][currentMinIndex], LCB[i][currentMinIndex])
+
+            #
+            # gpMean_line.set_data([],[])
+            #
+            # gpTrain_line.set_data([],[])
+            #
+            # gpNext_line.set_data([],[])
+            #
+            # lcb_line.set_data([],[])
+            #
+            # lcbMin_line.set_data([],[])
+            fill_poly = ax_gp.fill_between([], [], [], alpha=var_alpha, facecolor=var_color, edgecolor=None)
+
+
 
         return gpMean_line, gpTrain_line, gpNext_line, lcb_line, lcbMin_line, tau_line, fill_poly
 
