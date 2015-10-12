@@ -52,7 +52,8 @@ int main(int argc, char const *argv[])
     std::cout << "minVals:\n" << minVals << std::endl;
     std::cout << "maxVals:\n" << maxVals << std::endl;
     std::cout << "nSteps: " << nSteps << std::endl;
-    Eigen::MatrixXd result = discretizeSearchSpace(minVals, maxVals, nSteps);
+    Eigen::MatrixXd result;
+    discretizeSearchSpace(minVals, maxVals, nSteps, result);
     std::cout << "result:\n" << result.rows() << "x" << result.cols() << std::endl;
     // std::cout << "\nresult:\n" << result<< std::endl;
 

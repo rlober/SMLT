@@ -39,23 +39,7 @@ namespace smlt
         return output;
     };
 
-    /*!
-    *
-    *   @param [in] inputMat Assumes that each row represents an sample set of random variables.
-    */
-    inline Eigen::MatrixXd calculateCovariance(const Eigen::MatrixXd& inputMat, bool diagonalOnly=false)
-    {
-        int nCols = inputMat.cols();
-        Eigen::MatrixXd dispMat = inputMat - inputMat.rowwise().mean().replicate(1,nCols);
-        Eigen::MatrixXd result = (dispMat * dispMat.transpose()) / (nCols-1);
-        if (diagonalOnly) {
-            return result.diagonal().asDiagonal();
-        }else{
-            return result;
-        }
 
-
-    };
 
     Eigen::VectorXd getVariance(const Eigen::MatrixXd& inputMat);
 
@@ -68,9 +52,38 @@ namespace smlt
     const std::string currentDateTime();
     void checkAndCreateDirectory(const std::string dirPath);
 
-    Eigen::MatrixXd discretizeSearchSpace(Eigen::VectorXd& minVals, Eigen::VectorXd& maxVals, const int nSteps = 100);
+    void discretizeSearchSpace(Eigen::VectorXd& minVals, Eigen::VectorXd& maxVals, const int nSteps, Eigen::MatrixXd& searchSpace);
+    void discretizeSearchSpace(Eigen::VectorXd& minVals, Eigen::VectorXd& maxVals, const Eigen::VectorXi& nStepVec, Eigen::MatrixXd& searchSpace);
 
-    Eigen::MatrixXd ndGrid(Eigen::MatrixXd& vectorsToCombine, bool combineColWise=true);
+
+    void ndGrid(Eigen::MatrixXd& vectorsToCombine, Eigen::MatrixXd& searchSpace, bool combineColWise=true);
+
+    /*!
+    *
+    *   @param [in] inputMat Assumes that each row represents an sample set of random variables.
+    */
+    inline Eigen::MatrixXd calculateCovariance(const Eigen::MatrixXd& inputMat, bool diagonalOnly=false)
+    {
+        int nCols = inputMat.cols();
+        Eigen::MatrixXd result;
+        if (nCols == 1) {
+            Eigen::VectorXd tmpVec = inputMat.col(0);
+            double bestVarianceGuess = getVariance(tmpVec);
+            result = Eigen::MatrixXd::Constant(tmpVec.rows(), tmpVec.rows(), bestVarianceGuess);
+        }
+        else{
+            Eigen::MatrixXd dispMat = inputMat - inputMat.rowwise().mean().replicate(1,nCols);
+            result = (dispMat * dispMat.transpose()) / (nCols-1);
+
+        }
+
+        if (diagonalOnly) {
+            return result.diagonal().asDiagonal();
+        }else{
+            return result;
+        }
+
+    };
 
 } // End of namespace smlt
 

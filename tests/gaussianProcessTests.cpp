@@ -55,15 +55,15 @@ int main(int argc, char const *argv[])
     // Eigen::MatrixXd meanMat, varMat;
     //
     // Eigen::VectorXd testVec = Eigen::VectorXd::Random(2);
-    // std::cout << "Testing getMeanAndVariance for one input vector." << std::endl;
+    // std::cout << "Testing calculateMeanAndVariance for one input vector." << std::endl;
     //
-    // gProcess.getMeanAndVariance(testVec, meanMat, varMat);
+    // gProcess.calculateMeanAndVariance(testVec, meanMat, varMat);
     // std::cout << "mean = \n" << meanMat << "\nvar = \n" << varMat << std::endl;
     //
     //
-    // std::cout << "Testing getMeanAndVariance for multiple input vectors." << std::endl;
+    // std::cout << "Testing calculateMeanAndVariance for multiple input vectors." << std::endl;
     // Eigen::MatrixXd testMat = Eigen::MatrixXd::Random(2,3);
-    // gProcess.getMeanAndVariance(testMat, meanMat, varMat);
+    // gProcess.calculateMeanAndVariance(testMat, meanMat, varMat);
     // std::cout << "mean = \n" << meanMat << "\nvar = \n" << varMat << std::endl;
     //
     //
@@ -79,14 +79,14 @@ int main(int argc, char const *argv[])
     // gProcess.addNewKernelData(newCenters, newTrainingData);
     //
     // std::cout << "Testing new data for multiple input vectors." << std::endl;
-    // gProcess.getMeanAndVariance(testMat, meanMat, varMat);
+    // gProcess.calculateMeanAndVariance(testMat, meanMat, varMat);
     // std::cout << "mean = \n" << meanMat << "\nvar = \n" << varMat << std::endl;
     //
     //
     // std::cout << "\n\nRemoving newly added kernels..." << std::endl;
     // gProcess.removeRecentlyAddedKernelData();
     // std::cout << "Testing after removal for multiple input vectors." << std::endl;
-    // gProcess.getMeanAndVariance(testMat, meanMat, varMat);
+    // gProcess.calculateMeanAndVariance(testMat, meanMat, varMat);
     // std::cout << "mean = \n" << meanMat << "\nvar = \n" << varMat << std::endl;
 
 

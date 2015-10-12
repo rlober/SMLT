@@ -34,15 +34,38 @@ bopt_Solution bayesianOptimization::initialize(const Eigen::MatrixXd& centerData
     gpTrainingData = costData;
     numberOfIterations = 0;
 
-    Eigen::VectorXd mins = gpCenters.rowwise().minCoeff();
-    Eigen::VectorXd maxs = gpCenters.rowwise().maxCoeff();
 
-    searchSpaceBounds.resize(2, mins.rows());
-    searchSpaceBounds << mins.transpose(), maxs.transpose();
 
-    int nSteps = 50;
+    if (optParameters.gridSpacing.rows()==1 && optParameters.gridSpacing(0)==0.0 ) {
+        if (gpCenters.cols()>1) {
 
-    searchSpace = discretizeSearchSpace(mins, maxs, nSteps);
+            Eigen::VectorXd mins = gpCenters.rowwise().minCoeff();
+            Eigen::VectorXd maxs = gpCenters.rowwise().maxCoeff();
+            std::cout << "No search grid was specified so we will create one based on the input data provided." << std::endl;
+            searchSpaceBounds.resize(2, mins.rows());
+            searchSpaceBounds << mins.transpose(), maxs.transpose();
+            int nSteps = 50;
+            discretizeSearchSpace(mins, maxs, nSteps, searchSpace);
+        }
+        else {
+            smltError("You need to specify a search grid, or provide at least two data points.");
+        }
+    }
+    else {
+        searchSpaceBounds.resize(2, optParameters.searchSpaceMinBound.rows());
+        searchSpaceBounds <<    optParameters.searchSpaceMinBound.transpose(),
+        optParameters.searchSpaceMaxBound.transpose();
+
+        // Eigen::VectorXd nSteps =  (optParameters.searchSpaceMaxBound - optParameters.searchSpaceMinBound).array() / optParameters.gridSpacing.array();
+        int nSteps = 50;
+        discretizeSearchSpace(optParameters.searchSpaceMinBound, optParameters.searchSpaceMaxBound, nSteps, searchSpace);
+    }
+
+    if (optParameters.costCovariance.rows()>0 && optParameters.costMaxCovariance.rows()>0) {
+        covarianceSetByUser=true;
+    }else{covarianceSetByUser=false;}
+
+
 
     costGP = new gaussianProcess();
 
@@ -55,17 +78,25 @@ bopt_Solution bayesianOptimization::initialize(const Eigen::MatrixXd& centerData
 
 
 
-bopt_Solution bayesianOptimization::update(const Eigen::VectorXd& newCenters, const Eigen::VectorXd& newCosts)
+bopt_Solution bayesianOptimization::update(Eigen::VectorXd& newCenters, Eigen::VectorXd& newCosts)
 {
-    return update(Eigen::MatrixXd(newCenters.transpose()), Eigen::MatrixXd(newCosts.transpose()));
+    if (gpCenters.rows()!=newCenters.rows())
+    {
+        newCenters.transposeInPlace();
+    }
+    return update(Eigen::MatrixXd(newCenters), Eigen::MatrixXd(newCosts.transpose()));
 }
 
-bopt_Solution bayesianOptimization::update(const Eigen::VectorXd& newCenters, const Eigen::MatrixXd& newCosts)
+bopt_Solution bayesianOptimization::update(Eigen::VectorXd& newCenters, Eigen::MatrixXd& newCosts)
 {
-    return update(Eigen::MatrixXd(newCenters.transpose()), newCosts);
+    if (gpCenters.rows()!=newCenters.rows())
+    {
+        newCenters.transposeInPlace();
+    }
+    return update(Eigen::MatrixXd(newCenters), newCosts);
 }
 
-bopt_Solution bayesianOptimization::update(const Eigen::MatrixXd& newCenters, const Eigen::VectorXd& newCosts)
+bopt_Solution bayesianOptimization::update(Eigen::MatrixXd& newCenters, Eigen::VectorXd& newCosts)
 {
     return update(newCenters, Eigen::MatrixXd(newCosts.transpose()));
 }
@@ -75,6 +106,7 @@ bopt_Solution bayesianOptimization::update(const Eigen::MatrixXd& newCenters, co
 {
 
     addNewDataToGP(newCenters, newCosts);
+
     updateGaussianProcess();
 
     return solve();
@@ -159,15 +191,14 @@ void bayesianOptimization::addNewDataToGP(const Eigen::MatrixXd& newCenters, con
 {
     int oldCols = gpCenters.cols();
     int extraCols = newCenters.cols();
+
+
     Eigen::MatrixXd tmpCenters(gpCenters.rows(), oldCols+extraCols);
     tmpCenters << gpCenters, newCenters;
-
     gpCenters.resize(tmpCenters.rows(), tmpCenters.cols());
     gpCenters = tmpCenters;
-
     Eigen::MatrixXd tmpTrain(gpTrainingData.rows(), oldCols+extraCols);
     tmpTrain << gpTrainingData, newCosts;
-
     gpTrainingData.resize(tmpTrain.rows(), tmpTrain.cols());
     gpTrainingData = tmpTrain;
 }
@@ -175,17 +206,39 @@ void bayesianOptimization::addNewDataToGP(const Eigen::MatrixXd& newCenters, con
 void bayesianOptimization::updateGaussianProcess()
 {
     costGP->setKernelCenters(gpCenters);
-
     costGP->setKernelTrainingData(gpTrainingData);
 
-    costGP->setCovarianceMatrix(calculateCovariance(gpCenters, true));
 
-    costGP->setMaxCovariance(getVariance(Eigen::MatrixXd(gpTrainingData.transpose())));
+    if (covarianceSetByUser)
+    {
+        bool test1 = optParameters.costCovariance.rows() == gpCenters.rows();
+        bool test2 = optParameters.costMaxCovariance.rows() == 1;
+        if (test1 && test2) {
+            costGP->setCovarianceMatrix(optParameters.costCovariance);
+            costGP->setMaxCovariance(optParameters.costMaxCovariance);
+        }else{
+            if (!test1) {
+                smltError("Provided kernel covariance matrix dimension (" << optParameters.costCovariance.rows() <<"x"<< optParameters.costCovariance.cols() << ") does not match kernel dimension ("<<  gpCenters.rows() << ").");
+            }
+            if (!test2) {
+                smltError("Provided kernel maximum covariance vector dimension (" << optParameters.costMaxCovariance.rows()<< ") is greater than 1.");
+            }
+        }
+    }
+    else
+    {
+        costGP->setCovarianceMatrix(calculateCovariance(gpCenters, true));
+        if (gpTrainingData.rows()==1) {
+            costGP->setMaxCovariance(1.0);
+
+        }else{
+            costGP->setMaxCovariance(getVariance(Eigen::MatrixXd(gpTrainingData.transpose())));
+
+        }
+    }
 
     costGP->calculateParameters();
-
-    costGP->getMeanAndVariance(searchSpace, currentCostMeans, currentCostVariances);
-
+    costGP->calculateMeanAndVariance(searchSpace, currentCostMeans, currentCostVariances);
 }
 
 void bayesianOptimization::createDataLog()

@@ -35,12 +35,18 @@ namespace smlt
             silenceOutput = false;
             minConfidence = 99.99;
             maxIter = 50;
+            gridSpacing = Eigen::VectorXd::Zero(1);
         }
         bool logData;
         bool silenceOutput; // no cout statements
         double minConfidence;
         int maxIter;
         std::string dataLogDir;
+        Eigen::VectorXd searchSpaceMinBound;
+        Eigen::VectorXd searchSpaceMaxBound;
+        Eigen::VectorXd gridSpacing;
+        Eigen::MatrixXd costCovariance;
+        Eigen::VectorXd costMaxCovariance;
 
         friend std::ostream& operator<<(std::ostream &out, const bopt_Parameters& params)
         {
@@ -49,6 +55,9 @@ namespace smlt
             out << "silenceOutput = " << params.silenceOutput << std::endl;
             out << "minConfidence = " << params.minConfidence << std::endl;
             out << "maxIter = " << params.maxIter << std::endl;
+            out << "searchSpaceMinBound = " << params.searchSpaceMinBound.transpose() << std::endl;
+            out << "searchSpaceMaxBound = " << params.searchSpaceMaxBound.transpose() << std::endl;
+            out << "gridSpacing = " << params.gridSpacing.transpose() << std::endl;
             return out;
         }
 
@@ -67,9 +76,9 @@ namespace smlt
         bopt_Solution initialize(const Eigen::MatrixXd& centerData, const Eigen::MatrixXd& costData);
 
 
-        bopt_Solution update(const Eigen::VectorXd& newCenters, const Eigen::VectorXd& newCosts);
-        bopt_Solution update(const Eigen::VectorXd& newCenters, const Eigen::MatrixXd& newCosts);
-        bopt_Solution update(const Eigen::MatrixXd& newCenters, const Eigen::VectorXd& newCosts);
+        bopt_Solution update(Eigen::VectorXd& newCenters, Eigen::VectorXd& newCosts);
+        bopt_Solution update(Eigen::VectorXd& newCenters, Eigen::MatrixXd& newCosts);
+        bopt_Solution update(Eigen::MatrixXd& newCenters, Eigen::VectorXd& newCosts);
 
         bopt_Solution update(const Eigen::MatrixXd& newCenters, const Eigen::MatrixXd& newCosts);
 
@@ -112,6 +121,8 @@ namespace smlt
 
         Eigen::MatrixXd currentCostMeans;
         Eigen::MatrixXd currentCostVariances;
+
+        bool covarianceSetByUser;
 
     private:
 

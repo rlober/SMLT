@@ -101,7 +101,7 @@ void gaussianProcess::setCovarianceMatrix(const Eigen::MatrixXd& userSigmaMat)
 }
 
 
-void gaussianProcess::getMeanAndVariance(const Eigen::VectorXd& inputVector, Eigen::MatrixXd& mean, Eigen::MatrixXd& variance)
+void gaussianProcess::calculateMeanAndVariance(const Eigen::VectorXd& inputVector, Eigen::MatrixXd& mean, Eigen::MatrixXd& variance)
 {
     bool check1 = kernelCenters.cols() == kernelTrainingData.rows();
     bool check2 = outputDimension == kernelWeights.cols();
@@ -129,7 +129,8 @@ void gaussianProcess::getMeanAndVariance(const Eigen::VectorXd& inputVector, Eig
 
 }
 
-void gaussianProcess::getMeanAndVariance(const Eigen::MatrixXd& inputVectors, Eigen::MatrixXd& means, Eigen::MatrixXd& variances)
+
+void gaussianProcess::calculateMeanAndVariance(const Eigen::MatrixXd& inputVectors, Eigen::MatrixXd& means, Eigen::MatrixXd& variances)
 {
     bool check1 = kernelCenters.cols() == kernelTrainingData.rows();
     bool check2 = outputDimension == kernelWeights.cols();
@@ -152,6 +153,122 @@ void gaussianProcess::getMeanAndVariance(const Eigen::MatrixXd& inputVectors, Ei
 
 
         // variances = -((((kernelOutput.array() * (designMatrixInv * kernelOutput).array()).colwise().sum() ).replicate(outputDimension,1)).colwise() * maximumCovariance.array()).colwise() + maximumCovariance;
+
+    }
+    else
+    {
+        if (!check1) {
+            smltError("The number of kernel centers: " << kernelCenters.cols() << " does not match the number of training data samples: " << kernelTrainingData.rows() << ". Every center should have a coresponding training data sample.");
+        }
+        if (!check2) {
+            smltError("The expected output dimension: " << outputDimension << " does not match the number of kernel weights: " << kernelWeights.cols() << ". Make sure to retrain when new data is added.");
+        }
+    }
+
+}
+
+void gaussianProcess::calculateMean(const Eigen::VectorXd& inputVector, Eigen::VectorXd& mean)
+{
+    bool check1 = kernelCenters.cols() == kernelTrainingData.rows();
+    bool check2 = outputDimension == kernelWeights.cols();
+
+    if (check1 && check2)
+    {
+        Eigen::MatrixXd kernelOutput;
+        kernelFuncPtr->evaluate(inputVector, kernelOutput);
+
+        mean.resize(outputDimension);
+
+        mean = (kernelOutput * kernelWeights).transpose(); // Kern out = [1 x Nc], kernweights = [Nc, outputDimension]
+    }
+
+    else
+    {
+        if (!check1) {
+            smltError("The number of kernel centers: " << kernelCenters.cols() << " does not match the number of training data samples: " << kernelTrainingData.rows() << ". Every center should have a coresponding training data sample.");
+        }
+        if (!check2) {
+            smltError("The expected output dimension: " << outputDimension << " does not match the number of kernel weights: " << kernelWeights.cols() << ". Make sure to retrain when new data is added.");
+        }
+    }
+
+}
+
+void gaussianProcess::calculateMean(const Eigen::MatrixXd& inputVectors, Eigen::MatrixXd& means)
+{
+    bool check1 = kernelCenters.cols() == kernelTrainingData.rows();
+    bool check2 = outputDimension == kernelWeights.cols();
+
+    if (check1 && check2)
+    {
+        int numberOfInputs = inputVectors.cols();
+        Eigen::MatrixXd kernelOutput;
+
+        kernelFuncPtr->evaluate(inputVectors, kernelOutput);
+
+        means.resize(outputDimension, numberOfInputs);
+
+        means = (kernelOutput * kernelWeights).transpose(); // Kern out = [Ns x Nc], kernweights = [Nc, outputDimension]
+
+    }
+    else
+    {
+        if (!check1) {
+            smltError("The number of kernel centers: " << kernelCenters.cols() << " does not match the number of training data samples: " << kernelTrainingData.rows() << ". Every center should have a coresponding training data sample.");
+        }
+        if (!check2) {
+            smltError("The expected output dimension: " << outputDimension << " does not match the number of kernel weights: " << kernelWeights.cols() << ". Make sure to retrain when new data is added.");
+        }
+    }
+
+}
+
+void gaussianProcess::calculateVariance(const Eigen::VectorXd& inputVector, Eigen::VectorXd& variance)
+{
+    bool check1 = kernelCenters.cols() == kernelTrainingData.rows();
+    bool check2 = outputDimension == kernelWeights.cols();
+
+    if (check1 && check2)
+    {
+        Eigen::MatrixXd kernelOutput;
+        kernelFuncPtr->evaluate(inputVector, kernelOutput);
+
+        variance.resize(outputDimension);
+
+
+        variance = maximumCovariance - (maximumCovariance.array() * (kernelOutput * designMatrixInv * kernelOutput.transpose()).replicate(outputDimension,1).array()).matrix();
+    }
+    else
+    {
+        if (!check1) {
+            smltError("The number of kernel centers: " << kernelCenters.cols() << " does not match the number of training data samples: " << kernelTrainingData.rows() << ". Every center should have a coresponding training data sample.");
+        }
+        if (!check2) {
+            smltError("The expected output dimension: " << outputDimension << " does not match the number of kernel weights: " << kernelWeights.cols() << ". Make sure to retrain when new data is added.");
+        }
+    }
+
+}
+
+void gaussianProcess::calculateVariance(const Eigen::MatrixXd& inputVectors, Eigen::MatrixXd& variances)
+{
+    bool check1 = kernelCenters.cols() == kernelTrainingData.rows();
+    bool check2 = outputDimension == kernelWeights.cols();
+
+    if (check1 && check2)
+    {
+        int numberOfInputs = inputVectors.cols();
+        Eigen::MatrixXd kernelOutput;
+
+        kernelFuncPtr->evaluate(inputVectors, kernelOutput);
+
+        variances.resize(outputDimension, numberOfInputs);
+
+
+        kernelOutput.transposeInPlace();
+
+        variances = maximumCovariance.replicate(1,numberOfInputs) -  (maximumCovariance.array().replicate(1,numberOfInputs).array() * ((kernelOutput.array() * (designMatrixInv * kernelOutput).array()).colwise().sum() ).replicate(outputDimension,1).array()).matrix();
+
 
     }
     else
@@ -355,12 +472,13 @@ void gaussianProcess::writeOutputToFile(std::string directoryPath, const bool ov
 
     int nSteps = 50;
 
-    Eigen::MatrixXd input = discretizeSearchSpace(mins, maxs, nSteps);
+    Eigen::MatrixXd input;
+    discretizeSearchSpace(mins, maxs, nSteps, input);
 
     Eigen::MatrixXd kernelOutput, gpMean, gpVariance;
     kernelFuncPtr->evaluate(input, kernelOutput);
 
-    getMeanAndVariance(input, gpMean, gpVariance);
+    calculateMeanAndVariance(input, gpMean, gpVariance);
 
     inputFile << input;
     kernelOutputFile << kernelOutput;

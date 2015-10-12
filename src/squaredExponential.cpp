@@ -76,47 +76,57 @@ void squaredExponential::doEvaluate(const Eigen::VectorXd& inputVector, Eigen::M
 
 void squaredExponential::doEvaluate(const Eigen::MatrixXd& _inputVectors, Eigen::MatrixXd& output)
 {
-    // Copy over input vectors so we can modify
-    Eigen::MatrixXd inputVectors = _inputVectors;
 
-    int numberOfInputs = inputVectors.cols();
-
-    // Check that the input vectors are the right dimension
-    if (inputVectors.rows() == kernelDimension)
+    if (_inputVectors.cols()==1)
     {
-        // Get the number of inputs
-        int inputSize = kernelDimension*numberOfInputs;
-
-        // First flatten the input vectors into a big column
-        inputVectors.resize(inputSize,1);
-
-        // Then repeat the input column vector numberOfKernels times along the column axis.
-        Eigen::MatrixXd inputMat = inputVectors.replicate(1, numberOfKernels);
-
-        // Precalculate (X-C)
-        inputMat -= kernelCenters.replicate(numberOfInputs,1);
-
-        // Create a summation matrix which is essentially just a block diagonal matrix of one vectors which avoids having to explicitly use a for loop to sum kernel outputs for a single input.
-        Eigen::MatrixXd summationMatrix = blockDiag(Eigen::MatrixXd::Ones(1, kernelDimension), numberOfInputs);
-
-        // Repeat the covariance matrix's inverse numberOfInputs times.
-        Eigen::MatrixXd sigmaMatInvBlk = blockDiag(sigmaMatInv, numberOfInputs);
-
-        // Prepare the output matrix.
-        output.resize(numberOfInputs, numberOfKernels);
-
-        // std::cout << "inputMat: " << inputMat.rows() << "x" << inputMat.cols() << std::endl;
-        // std::cout << "sigmaMatInvBlk: " << sigmaMatInvBlk.rows() << "x" << sigmaMatInvBlk.cols() << std::endl;
-        // std::cout << "summationMatrix: " << summationMatrix.rows() << "x" << summationMatrix.cols() << std::endl;
-        // std::cout << ": " << .rows() << "x" << .cols() << std::endl;
-
-
-        // Calculate the vectorized squared exponential kernel function.
-        output = maximumCovariance * (-0.5 * (summationMatrix* (inputMat.array() * (sigmaMatInvBlk * inputMat).array()).matrix()) ).array().exp();
+        doEvaluate(Eigen::VectorXd(_inputVectors), output);
     }
-    else{
-        smltError("Input vector does not match kernel dimension. Returning 0's.");
-        output = Eigen::MatrixXd::Zero(numberOfInputs, numberOfKernels);
+
+    else
+    {
+        // Copy over input vectors so we can modify
+        Eigen::MatrixXd inputVectors = _inputVectors;
+
+
+        int numberOfInputs = inputVectors.cols();
+
+        // Check that the input vectors are the right dimension
+        if (inputVectors.rows() == kernelDimension)
+        {
+            // Get the number of inputs
+            int inputSize = kernelDimension*numberOfInputs;
+
+            // First flatten the input vectors into a big column
+            inputVectors.resize(inputSize,1);
+
+            // Then repeat the input column vector numberOfKernels times along the column axis.
+            Eigen::MatrixXd inputMat = inputVectors.replicate(1, numberOfKernels);
+
+            // Precalculate (X-C)
+            inputMat -= kernelCenters.replicate(numberOfInputs,1);
+
+            // Create a summation matrix which is essentially just a block diagonal matrix of one vectors which avoids having to explicitly use a for loop to sum kernel outputs for a single input.
+            Eigen::MatrixXd summationMatrix = blockDiag(Eigen::MatrixXd::Ones(1, kernelDimension), numberOfInputs);
+
+            // Repeat the covariance matrix's inverse numberOfInputs times.
+            Eigen::MatrixXd sigmaMatInvBlk = blockDiag(sigmaMatInv, numberOfInputs);
+
+            // Prepare the output matrix.
+            output.resize(numberOfInputs, numberOfKernels);
+
+            // std::cout << "inputMat: " << inputMat.rows() << "x" << inputMat.cols() << std::endl;
+            // std::cout << "sigmaMatInvBlk: " << sigmaMatInvBlk.rows() << "x" << sigmaMatInvBlk.cols() << std::endl;
+            // std::cout << "summationMatrix: " << summationMatrix.rows() << "x" << summationMatrix.cols() << std::endl;
+            // std::cout << ": " << .rows() << "x" << .cols() << std::endl;
+
+
+            // Calculate the vectorized squared exponential kernel function.
+            output = maximumCovariance * (-0.5 * (summationMatrix* (inputMat.array() * (sigmaMatInvBlk * inputMat).array()).matrix()) ).array().exp();
+        }
+        else{
+            smltError("Input vector does not match kernel dimension. Returning 0's.");
+            output = Eigen::MatrixXd::Zero(numberOfInputs, numberOfKernels);
+        }
     }
 }
 
@@ -206,7 +216,8 @@ void squaredExponential::writeOutputToFile(std::string directoryPath, const bool
         nSteps = 8;
     }
 
-    Eigen::MatrixXd kernelInput = discretizeSearchSpace(mins, maxs, nSteps);
+    Eigen::MatrixXd kernelInput;
+    discretizeSearchSpace(mins, maxs, nSteps, kernelInput);
 
     Eigen::MatrixXd kernelOutput;
 

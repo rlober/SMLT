@@ -76,7 +76,13 @@ void checkAndCreateDirectory(const std::string dirPath)
 }
 
 
-Eigen::MatrixXd discretizeSearchSpace(Eigen::VectorXd& minVals, Eigen::VectorXd& maxVals, const int nSteps)
+void discretizeSearchSpace(Eigen::VectorXd& minVals, Eigen::VectorXd& maxVals, const int nSteps, Eigen::MatrixXd& searchSpace)
+{
+    Eigen::VectorXi nStepVec = Eigen::VectorXi::Constant(minVals.size(), nSteps);
+    discretizeSearchSpace(minVals, maxVals, nStepVec, searchSpace);
+}
+
+void discretizeSearchSpace(Eigen::VectorXd& minVals, Eigen::VectorXd& maxVals, const Eigen::VectorXi& nStepVec, Eigen::MatrixXd& searchSpace)
 {
     if ((minVals.rows()==1) && (minVals.cols()>1))
     {
@@ -89,29 +95,27 @@ Eigen::MatrixXd discretizeSearchSpace(Eigen::VectorXd& minVals, Eigen::VectorXd&
         smltWarning("You passed a row vector. Converting to a column vector. Note that the output of this function will be in column format.");
     }
 
+    int nSteps = nStepVec(0);
     int dim = minVals.rows();
     Eigen::MatrixXd centersMat = Eigen::MatrixXd::Zero(nSteps, dim);
 
     Eigen::MatrixXd searchSpaceMat;
 
-    if (minVals.rows()==maxVals.rows())
+    if (minVals.rows()==maxVals.rows())//==nStepVec.rows())
     {
-
         for (int i = 0; i < dim; i++) {
             centersMat.col(i) = Eigen::VectorXd::LinSpaced(nSteps, minVals(i), maxVals(i));
         }
 
-        searchSpaceMat = ndGrid(centersMat, true);
+        ndGrid(centersMat, searchSpace, true);
     }
     else {
         smltError("Min and max vectors must be the same dimension. You passed, Min = " << minVals.rows() << "x" << minVals.cols() << " and Max = "  << maxVals.rows() << "x" << maxVals.cols() << ".");
     }
-
-    return searchSpaceMat;
 }
 
 
-Eigen::MatrixXd ndGrid(Eigen::MatrixXd& vectorsToCombine, bool combineColWise)
+void ndGrid(Eigen::MatrixXd& vectorsToCombine, Eigen::MatrixXd& searchSpace, bool combineColWise)
 {
     if (!combineColWise) {
         vectorsToCombine.transposeInPlace();
@@ -127,7 +131,7 @@ Eigen::MatrixXd ndGrid(Eigen::MatrixXd& vectorsToCombine, bool combineColWise)
 
     if (memoryNeeded<availibleMem)
     {
-        Eigen::MatrixXd comboMat = Eigen::MatrixXd::Zero(nCols, nCombos);
+        searchSpace.resize(nCols, nCombos);
         Eigen::VectorXi indexVector = Eigen::VectorXi::Zero(nCols);
         int colCounter = 0;
         int id0_old = 0;
@@ -137,7 +141,7 @@ Eigen::MatrixXd ndGrid(Eigen::MatrixXd& vectorsToCombine, bool combineColWise)
         {
             for(int j=0; j<nCols; j++)
             {
-                comboMat(j, colCounter) = vectorsToCombine(indexVector(j), j);
+                searchSpace(j, colCounter) = vectorsToCombine(indexVector(j), j);
             }
             indexVector(nCols-1)++;
             for (int i=nCols-1; (i>0) && (indexVector(i)==nRows); i--)
@@ -148,13 +152,12 @@ Eigen::MatrixXd ndGrid(Eigen::MatrixXd& vectorsToCombine, bool combineColWise)
             colCounter++;
         }
 
-        return comboMat;
     }
     else
     {
         smltError("You don't have enough memory availible for all of these combinations!\n\tnumber of dimensions = " << nCols << std::endl << "\tnumber of combinations = " << nCombos << std::endl << "\tsizeof(double) = " << sizeof(double) << " bytes" <<  std::endl << "\tmemoryNeeded = " << memoryNeeded  << " Gb"<< std::endl << "\ttotal memory availible = " << availibleMem << " Gb" << std::endl);
 
-        return Eigen::MatrixXd::Zero(1,1);
+        searchSpace = Eigen::MatrixXd::Zero(1,1);
     }
 
 }

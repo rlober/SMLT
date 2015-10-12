@@ -41,8 +41,13 @@ namespace smlt
         void setCovarianceMatrix(const Eigen::VectorXd& userSigmaVec);
         void setCovarianceMatrix(const Eigen::MatrixXd& userSigmaMat);
 
-        void getMeanAndVariance(const Eigen::VectorXd& inputVector, Eigen::MatrixXd& mean, Eigen::MatrixXd& variance);
-        void getMeanAndVariance(const Eigen::MatrixXd& inputVectors, Eigen::MatrixXd& means, Eigen::MatrixXd& variances);
+        void calculateMeanAndVariance(const Eigen::VectorXd& inputVector, Eigen::MatrixXd& mean, Eigen::MatrixXd& variance);
+        void calculateMeanAndVariance(const Eigen::MatrixXd& inputVectors, Eigen::MatrixXd& means, Eigen::MatrixXd& variances);
+        void calculateMean(const Eigen::VectorXd& inputVector, Eigen::VectorXd& mean);
+        void calculateMean(const Eigen::MatrixXd& inputVectors, Eigen::MatrixXd& means);
+        void calculateVariance(const Eigen::VectorXd& inputVector, Eigen::VectorXd& variance);
+        void calculateVariance(const Eigen::MatrixXd& inputVectors, Eigen::MatrixXd& variances);
+
 
         void writeDataToFile(std::string directoryPath="./", const bool overwrite=false);
         void writeOutputToFile(std::string directoryPath="./", const bool overwrite=false);
