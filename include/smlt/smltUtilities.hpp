@@ -56,7 +56,11 @@ namespace smlt
     void discretizeSearchSpace(Eigen::VectorXd& minVals, Eigen::VectorXd& maxVals, const Eigen::VectorXi& nStepVec, Eigen::MatrixXd& searchSpace);
 
 
-    void ndGrid(Eigen::MatrixXd& vectorsToCombine, Eigen::MatrixXd& searchSpace, bool combineColWise=true);
+    void ndGrid(std::vector<Eigen::VectorXd>& vectorsToCombine, Eigen::MatrixXd& searchSpace);
+
+
+    bool checkMemoryConsumption(const int nCols, const signed long long int nCombos);
+
 
     /*!
     *

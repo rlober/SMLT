@@ -95,56 +95,69 @@ void discretizeSearchSpace(Eigen::VectorXd& minVals, Eigen::VectorXd& maxVals, c
         smltWarning("You passed a row vector. Converting to a column vector. Note that the output of this function will be in column format.");
     }
 
-    int nSteps = nStepVec(0);
+
     int dim = minVals.rows();
-    Eigen::MatrixXd centersMat = Eigen::MatrixXd::Zero(nSteps, dim);
 
-    Eigen::MatrixXd searchSpaceMat;
+    bool twoStepsMin = true;
+    for (int i =0; i<dim; i++)
+    {
+        twoStepsMin = twoStepsMin && (nStepVec(i)>=2);
+    }
 
-    if (minVals.rows()==maxVals.rows())//==nStepVec.rows())
+    std::vector<Eigen::VectorXd> vectorsToCombine;
+    vectorsToCombine.resize(dim);
+
+    bool rowsMatch = minVals.rows()==maxVals.rows();
+
+    if (rowsMatch && twoStepsMin)
     {
         for (int i = 0; i < dim; i++) {
-            centersMat.col(i) = Eigen::VectorXd::LinSpaced(nSteps, minVals(i), maxVals(i));
+
+            vectorsToCombine[i] = Eigen::VectorXd::LinSpaced(nStepVec(i), minVals(i), maxVals(i));
         }
 
-        ndGrid(centersMat, searchSpace, true);
+        ndGrid(vectorsToCombine, searchSpace);
     }
     else {
-        smltError("Min and max vectors must be the same dimension. You passed, Min = " << minVals.rows() << "x" << minVals.cols() << " and Max = "  << maxVals.rows() << "x" << maxVals.cols() << ".");
+        if (!rowsMatch) {
+            smltError("Min and max vectors must be the same dimension. You passed, Min = " << minVals.rows() << "x" << minVals.cols() << " and Max = "  << maxVals.rows() << "x" << maxVals.cols() << ".");
+        }
+        if (!twoStepsMin) {
+            smltError("Each dimension must be discretized with at least two steps in order to include the bounds. Your discretization vector was: "<< nStepVec.transpose() << ".");
+
+        }
     }
 }
 
 
-void ndGrid(Eigen::MatrixXd& vectorsToCombine, Eigen::MatrixXd& searchSpace, bool combineColWise)
+void ndGrid(std::vector<Eigen::VectorXd>& vectorsToCombine, Eigen::MatrixXd& searchSpace)
 {
-    if (!combineColWise) {
-        vectorsToCombine.transposeInPlace();
+    int nCols = vectorsToCombine.size();
+
+    signed long long int nCombos = 1; //vectorsToCombine[0].rows();
+
+    for(int i=0; i<nCols; i++)
+    {
+        nCombos *= vectorsToCombine[i].rows();
     }
 
-    int nRows = vectorsToCombine.rows();
-    int nCols = vectorsToCombine.cols();
 
-    signed long long int nCombos = pow(nRows, nCols);
 
-    double memoryNeeded = nCols*nCombos* (double)sizeof(double) / 1000000000.0;
-    double availibleMem = (double)sysconf(_SC_PHYS_PAGES)*(double)sysconf(_SC_PAGE_SIZE) / 1000000000.0;
-
-    if (memoryNeeded<availibleMem)
+    if (checkMemoryConsumption(nCols, nCombos))
     {
         searchSpace.resize(nCols, nCombos);
         Eigen::VectorXi indexVector = Eigen::VectorXi::Zero(nCols);
         int colCounter = 0;
-        int id0_old = 0;
 
         // This trickyness courtesy of: http://stackoverflow.com/questions/1700079/howto-create-combinations-of-several-vectors-without-hardcoding-loops-in-c#answer-1703575
-        while (indexVector(0) < nRows)
+        while (indexVector(0) < vectorsToCombine[0].rows())
         {
             for(int j=0; j<nCols; j++)
             {
-                searchSpace(j, colCounter) = vectorsToCombine(indexVector(j), j);
+                searchSpace(j, colCounter) = vectorsToCombine[j](indexVector(j));
             }
             indexVector(nCols-1)++;
-            for (int i=nCols-1; (i>0) && (indexVector(i)==nRows); i--)
+            for (int i=nCols-1; (i>0) && (indexVector(i)==vectorsToCombine[i].rows()); i--)
             {
                 indexVector(i) = 0;
                 indexVector(i-1)++;
@@ -155,13 +168,24 @@ void ndGrid(Eigen::MatrixXd& vectorsToCombine, Eigen::MatrixXd& searchSpace, boo
     }
     else
     {
-        smltError("You don't have enough memory availible for all of these combinations!\n\tnumber of dimensions = " << nCols << std::endl << "\tnumber of combinations = " << nCombos << std::endl << "\tsizeof(double) = " << sizeof(double) << " bytes" <<  std::endl << "\tmemoryNeeded = " << memoryNeeded  << " Gb"<< std::endl << "\ttotal memory availible = " << availibleMem << " Gb" << std::endl);
-
         searchSpace = Eigen::MatrixXd::Zero(1,1);
     }
 
 }
 
+bool checkMemoryConsumption(const int nCols, const signed long long int nCombos)
+{
+    double memoryNeeded = nCols*nCombos* (double)sizeof(double) / 1000000000.0;
+    double availibleMem = (double)sysconf(_SC_PHYS_PAGES)*(double)sysconf(_SC_PAGE_SIZE) / 1000000000.0;
+
+    bool response = memoryNeeded<availibleMem;
+
+    if (!response) {
+        smltError("You don't have enough memory availible for all of these combinations!\n\tnumber of dimensions = " << nCols << std::endl << "\tnumber of combinations = " << nCombos << std::endl << "\tsizeof(double) = " << sizeof(double) << " bytes" <<  std::endl << "\tmemoryNeeded = " << memoryNeeded  << " Gb"<< std::endl << "\ttotal memory availible = " << availibleMem << " Gb" << std::endl);
+    }
+
+    return response;
+}
 
 
 };
