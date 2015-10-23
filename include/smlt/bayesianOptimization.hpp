@@ -36,6 +36,8 @@ namespace smlt
             minConfidence = 99.99;
             maxIter = 50;
             gridSpacing = Eigen::VectorXd::Zero(1);
+            gridSteps = Eigen::VectorXi::Zero(1);
+            normalize = false;
         }
         bool logData;
         bool silenceOutput; // no cout statements
@@ -45,8 +47,11 @@ namespace smlt
         Eigen::VectorXd searchSpaceMinBound;
         Eigen::VectorXd searchSpaceMaxBound;
         Eigen::VectorXd gridSpacing;
+        Eigen::VectorXi gridSteps;
         Eigen::MatrixXd costCovariance;
         Eigen::VectorXd costMaxCovariance;
+        bool normalize;
+
 
         friend std::ostream& operator<<(std::ostream &out, const bopt_Parameters& params)
         {
@@ -58,6 +63,8 @@ namespace smlt
             out << "searchSpaceMinBound = " << params.searchSpaceMinBound.transpose() << std::endl;
             out << "searchSpaceMaxBound = " << params.searchSpaceMaxBound.transpose() << std::endl;
             out << "gridSpacing = " << params.gridSpacing.transpose() << std::endl;
+            out << "gridSteps = " << params.gridSteps.transpose() << std::endl;
+            out << "normalize = " << params.normalize << std::endl;
             return out;
         }
 
@@ -93,7 +100,6 @@ namespace smlt
 
 
     protected:
-        void addNewDataToGP(const Eigen::MatrixXd& newCenters, const Eigen::MatrixXd& newCosts);
         void updateGaussianProcess();
         void minimizeAcquistionFunction(int& optimalIndex);
         double tauFunction(const int t);

@@ -68,7 +68,7 @@ void gaussianProcess::calculateParameters()
     if (kernelCenters.cols() == kernelTrainingData.rows())
     {
         kernelFuncPtr->getDesignMatrix(designMatrix);
-        designMatrixInv = designMatrix.inverse();
+        designMatrixInv = designMatrix.fullPivLu().inverse();
         kernelWeights = designMatrixInv * kernelTrainingData;
     }
     else

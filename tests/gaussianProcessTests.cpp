@@ -12,17 +12,17 @@ int main(int argc, char const *argv[])
 {
     gaussianProcess gProcess;
 
-    Eigen::MatrixXd inputData(1,2);
-    inputData << 0.0, 3.5;
+    Eigen::MatrixXd inputData(1,3);
+    inputData << 0.0, 3.5, 0.01;
 
 
-    Eigen::MatrixXd outputSamples(3,2);
-    outputSamples <<    1.5,     1.2,
-                        -1.0,    -0.41,
-                        2.5,     2.9;
+    Eigen::MatrixXd outputSamples(3,3);
+    outputSamples <<    1.5,     1.2,   1.5,
+                        -1.0,    -0.41, -1.0,
+                        2.5,     2.9,   2.5;
 
 
-    Eigen::MatrixXd Sigma = calculateCovariance(inputData, true)*0.5;
+    Eigen::MatrixXd Sigma = calculateCovariance(inputData, true);
     Eigen::VectorXd maxCov = getVariance(Eigen::MatrixXd(outputSamples.transpose()));
     // Eigen::VectorXd maxCov = Eigen::VectorXd::Ones(3);
 

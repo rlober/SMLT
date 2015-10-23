@@ -34,7 +34,10 @@ bopt_Solution bayesianOptimization::initialize(const Eigen::MatrixXd& centerData
     gpTrainingData = costData;
     numberOfIterations = 0;
 
+    searchSpaceBounds.resize(2, optParameters.searchSpaceMinBound.rows());
+    searchSpaceBounds << optParameters.searchSpaceMinBound.transpose(), optParameters.searchSpaceMaxBound.transpose();
 
+    Eigen::VectorXi nSteps;
 
     if (optParameters.gridSpacing.rows()==1 && optParameters.gridSpacing(0)==0.0 ) {
         if (gpCenters.cols()>1) {
@@ -47,19 +50,20 @@ bopt_Solution bayesianOptimization::initialize(const Eigen::MatrixXd& centerData
             int nSteps = 50;
             discretizeSearchSpace(mins, maxs, nSteps, searchSpace);
         }
-        else {
+        else if (optParameters.gridSteps.rows()==1 && optParameters.gridSteps(0)==0 ) {
             smltError("You need to specify a search grid, or provide at least two data points.");
         }
+    }else{
+        nSteps = ((optParameters.searchSpaceMaxBound - optParameters.searchSpaceMinBound).array() / optParameters.gridSpacing.array()).cast <int> ();
     }
-    else {
-        searchSpaceBounds.resize(2, optParameters.searchSpaceMinBound.rows());
-        searchSpaceBounds <<    optParameters.searchSpaceMinBound.transpose(),
-        optParameters.searchSpaceMaxBound.transpose();
 
-        // Eigen::VectorXd nSteps =  (optParameters.searchSpaceMaxBound - optParameters.searchSpaceMinBound).array() / optParameters.gridSpacing.array();
-        int nSteps = 50;
-        discretizeSearchSpace(optParameters.searchSpaceMinBound, optParameters.searchSpaceMaxBound, nSteps, searchSpace);
+    if (optParameters.gridSteps.rows()>=1 && optParameters.gridSteps(0)!=0 ) {
+
+        nSteps = optParameters.gridSteps;
     }
+
+    discretizeSearchSpace(optParameters.searchSpaceMinBound, optParameters.searchSpaceMaxBound, nSteps, searchSpace);
+
 
     if (optParameters.costCovariance.rows()>0 && optParameters.costMaxCovariance.rows()>0) {
         covarianceSetByUser=true;
@@ -105,7 +109,8 @@ bopt_Solution bayesianOptimization::update(Eigen::MatrixXd& newCenters, Eigen::V
 bopt_Solution bayesianOptimization::update(const Eigen::MatrixXd& newCenters, const Eigen::MatrixXd& newCosts)
 {
 
-    addNewDataToGP(newCenters, newCosts);
+    gpCenters = hStack(gpCenters, newCenters);
+    gpTrainingData = hStack(gpTrainingData, newCosts);
 
     updateGaussianProcess();
 
@@ -119,6 +124,7 @@ bopt_Solution bayesianOptimization::solve()
 
 
     minimizeAcquistionFunction(currentSolution.minIndex);
+
 
     currentSolution.currentMinCost = currentCostMeans(0,currentSolution.minIndex);
     currentSolution.currentConfidence = (1. - currentCostVariances(0,currentSolution.minIndex))*100.;
@@ -186,23 +192,6 @@ double bayesianOptimization::tauFunction(const int t)
     return 2.0*log(pow((double)t, ((d/2.0)+2.0)) + (pow(M_PI, 2.0) / 3.0*delta) );
 }
 
-
-void bayesianOptimization::addNewDataToGP(const Eigen::MatrixXd& newCenters, const Eigen::MatrixXd& newCosts)
-{
-    int oldCols = gpCenters.cols();
-    int extraCols = newCenters.cols();
-
-
-    Eigen::MatrixXd tmpCenters(gpCenters.rows(), oldCols+extraCols);
-    tmpCenters << gpCenters, newCenters;
-    gpCenters.resize(tmpCenters.rows(), tmpCenters.cols());
-    gpCenters = tmpCenters;
-    Eigen::MatrixXd tmpTrain(gpTrainingData.rows(), oldCols+extraCols);
-    tmpTrain << gpTrainingData, newCosts;
-    gpTrainingData.resize(tmpTrain.rows(), tmpTrain.cols());
-    gpTrainingData = tmpTrain;
-}
-
 void bayesianOptimization::updateGaussianProcess()
 {
     costGP->setKernelCenters(gpCenters);
@@ -236,6 +225,7 @@ void bayesianOptimization::updateGaussianProcess()
 
         }
     }
+
 
     costGP->calculateParameters();
     costGP->calculateMeanAndVariance(searchSpace, currentCostMeans, currentCostVariances);
