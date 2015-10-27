@@ -19,13 +19,20 @@ Eigen::VectorXd costFunction(const Eigen::VectorXd& input)
 
 int main(int argc, char const *argv[])
 {
+
     Eigen::VectorXd centerData(2);
     centerData << 1.0, 7.12;
-
     Eigen::VectorXd costData = costFunction(centerData);
 
 
     bopt_Parameters bopt_params = bopt_Parameters();
+
+    bopt_params.searchSpaceMinBound = Eigen::VectorXd::Constant(1, 0.1);
+    bopt_params.searchSpaceMaxBound = Eigen::VectorXd::Constant(1, 8.0);
+    bopt_params.gridSteps = Eigen::VectorXi::Constant(1, 50);
+    bopt_params.maxIter = 50;
+    bopt_params.normalize = true;
+
 
     bopt_params.dataLogDir = "/home/ryan/Code/smlt/tmp3/";
 

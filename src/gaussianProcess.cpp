@@ -140,7 +140,9 @@ void gaussianProcess::calculateMeanAndVariance(const Eigen::MatrixXd& inputVecto
         int numberOfInputs = inputVectors.cols();
         Eigen::MatrixXd kernelOutput;
 
+
         kernelFuncPtr->evaluate(inputVectors, kernelOutput);
+
 
         means.resize(outputDimension, numberOfInputs);
         variances.resize(outputDimension, numberOfInputs);

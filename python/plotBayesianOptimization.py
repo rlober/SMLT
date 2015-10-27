@@ -123,9 +123,10 @@ lcbMax = np.max(lcbMaxs) + np.max(lcbMaxs)*0.2
 ###################################################################################
 if kernelDim==1:
 
-    trueCost = np.sin(searchSpace[0]) * 3.333 +np.power(searchSpace[0], 3) /100.0 + np.power(searchSpace[0],2)/10.0
+    trueSearchSpace = np.linspace(0.1, 8.0, 50)
+    trueCost = np.sin(trueSearchSpace) * 3.333 +np.power(trueSearchSpace, 3) /100.0 + np.power(trueSearchSpace,2)/10.0
     print trueCost
-
+    print "searchSpace\n\n", searchSpace[0]
 
     ax_gp = plt.subplot2grid((3,2), (0,0), rowspan=2)
     gpMean_line, = ax_gp.plot([], [], color=var_color, linewidth=4)
@@ -140,7 +141,8 @@ if kernelDim==1:
 
     ax_gp.set_ylabel('Cost', fontsize=fs_labels)
     ax_gp.set_title('Gaussian Process Cost Estimate')
-    ax_gp.set_xlim(searchSpaceBounds[0][0], searchSpaceBounds[0][1])
+    # ax_gp.set_xlim(searchSpaceBounds[0][0], searchSpaceBounds[0][1])
+    ax_gp.set_xlim(0, 1.0)
 
 
     ax_acq = plt.subplot2grid((3,2), (2,0))
@@ -151,7 +153,8 @@ if kernelDim==1:
     ax_acq.set_ylabel('LCB', fontsize=fs_labels)
     ax_acq.set_xlabel('Input', fontsize=fs_labels)
     ax_acq.set_title(r'$\mu - \sqrt{\tau}\sigma$')
-    ax_acq.set_xlim(searchSpaceBounds[0][0], searchSpaceBounds[0][1])
+    # ax_acq.set_xlim(searchSpaceBounds[0][0], searchSpaceBounds[0][1])
+    ax_acq.set_xlim(0, 1.0)
     ax_acq.set_ylim( lcbMin, lcbMax)
 
     ax_tau = plt.subplot2grid((3,2), (2,1))

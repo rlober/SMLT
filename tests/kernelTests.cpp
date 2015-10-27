@@ -48,14 +48,14 @@ int main(int argc, char const *argv[])
     kern.getDesignMatrix(designMatrix);
     std::cout << designMatrix << std::endl;
 
-
+    
     std::cout << "\n\nStress tests...\n\n" << std::endl;
 
 
     Eigen::MatrixXd bigCenters  = Eigen::MatrixXd::Random(20,30);
     Eigen::MatrixXd bigSigma = calculateCovariance(bigCenters, true);
     Eigen::VectorXd bigVarVec   = Eigen::VectorXd::Ones(20);
-    Eigen::MatrixXd bigEvalMat  = Eigen::MatrixXd::Random(20,200);
+    Eigen::MatrixXd bigEvalMat  = Eigen::MatrixXd::Random(20,2000);
 
     Eigen::MatrixXd bigOutput;
     Eigen::MatrixXd bigDesignMat;

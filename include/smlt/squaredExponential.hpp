@@ -10,6 +10,11 @@
 #include "smlt/smltUtilities.hpp"
 #include "smlt/kernelFunction.hpp"
 
+
+#include <ctime>
+
+
+
 namespace smlt
 {
     class squaredExponential : public kernelFunction

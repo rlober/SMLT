@@ -35,8 +35,6 @@ namespace smlt
             silenceOutput = false;
             minConfidence = 99.99;
             maxIter = 50;
-            gridSpacing = Eigen::VectorXd::Zero(1);
-            gridSteps = Eigen::VectorXi::Zero(1);
             normalize = false;
         }
         bool logData;
@@ -127,6 +125,12 @@ namespace smlt
 
         Eigen::MatrixXd currentCostMeans;
         Eigen::MatrixXd currentCostVariances;
+
+        Eigen::VectorXd normalizationRanges, normalizationMins;
+
+        Eigen::MatrixXd costCovariance;
+        Eigen::VectorXd costMaxCovariance;
+
 
         bool covarianceSetByUser;
 

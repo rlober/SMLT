@@ -22,7 +22,7 @@ int main(int argc, char const *argv[])
                         2.5,     2.9,   2.5;
 
 
-    Eigen::MatrixXd Sigma = calculateCovariance(inputData, true);
+    Eigen::MatrixXd Sigma = calculateCovariance(inputData, true)*10.0;
     Eigen::VectorXd maxCov = getVariance(Eigen::MatrixXd(outputSamples.transpose()));
     // Eigen::VectorXd maxCov = Eigen::VectorXd::Ones(3);
 
