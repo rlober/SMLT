@@ -4,47 +4,32 @@
 
 using namespace smlt;
 
-bayesianOptimization::bayesianOptimization(const bopt_Parameters optParams) :
-optParameters(optParams)
+bayesianOptimization::bayesianOptimization(const optParameters _optParams) :
+nonlinearSolver(_optParams)
 {
-    if (optParameters.logData) {
+    if (optParams.logData) {
         createDataLog();
     }
 }
 
-bopt_Solution bayesianOptimization::initialize(const Eigen::VectorXd& centerData, const Eigen::VectorXd& costData)
-{
-    return initialize(Eigen::MatrixXd(centerData.transpose()), Eigen::MatrixXd(costData.transpose()));
-}
-
-bopt_Solution bayesianOptimization::initialize(const Eigen::VectorXd& centerData, const Eigen::MatrixXd& costData)
-{
-    return initialize(Eigen::MatrixXd(centerData.transpose()), costData);
-}
-
-bopt_Solution bayesianOptimization::initialize(const Eigen::MatrixXd& centerData, const Eigen::VectorXd& costData)
-{
-    return initialize(centerData, Eigen::MatrixXd(costData.transpose()));
-}
-
-bopt_Solution bayesianOptimization::initialize(const Eigen::MatrixXd& centerData, const Eigen::MatrixXd& costData)
+optSolution bayesianOptimization::doInit(const Eigen::MatrixXd& centerData, const Eigen::MatrixXd& costData)
 {
 
-    gpCenters = centerData;
-    gpTrainingData = costData;
+    optVars = centerData;
+    optVarCosts = costData;
     numberOfIterations = 0;
 
     Eigen::VectorXd minVec;
     Eigen::VectorXd maxVec;
 
-    if ((optParameters.searchSpaceMinBound.size()!=0) && (optParameters.searchSpaceMaxBound.size()!=0)) {
-        minVec = optParameters.searchSpaceMinBound;
-        maxVec = optParameters.searchSpaceMaxBound;
+    if ((optParams.searchSpaceMinBound.size()!=0) && (optParams.searchSpaceMaxBound.size()!=0)) {
+        minVec = optParams.searchSpaceMinBound;
+        maxVec = optParams.searchSpaceMaxBound;
     }
     else{
-        if (gpCenters.cols()>1){
-            minVec = gpCenters.rowwise().minCoeff();
-            maxVec = gpCenters.rowwise().maxCoeff();
+        if (optVars.cols()>1){
+            minVec = optVars.rowwise().minCoeff();
+            maxVec = optVars.rowwise().maxCoeff();
         }else{
             smltError("You need to specify a search grid, or provide at least two data points.");
         }
@@ -53,24 +38,24 @@ bopt_Solution bayesianOptimization::initialize(const Eigen::MatrixXd& centerData
 
     Eigen::VectorXi nSteps;
 
-    if ((optParameters.gridSpacing.size()==0) && (optParameters.gridSteps.size()==0)){
+    if ((optParams.gridSpacing.size()==0) && (optParams.gridSteps.size()==0)){
         nSteps = Eigen::VectorXi::Constant(minVec.rows(), 10);
     }
-    if (optParameters.gridSpacing.size()>0){
-        nSteps = ((optParameters.searchSpaceMaxBound - optParameters.searchSpaceMinBound).array() / optParameters.gridSpacing.array()).cast <int> ();
+    if (optParams.gridSpacing.size()>0){
+        nSteps = ((optParams.searchSpaceMaxBound - optParams.searchSpaceMinBound).array() / optParams.gridSpacing.array()).cast <int> ();
 
     }
-    if (optParameters.gridSteps.size()>0) {
-        nSteps = optParameters.gridSteps;
+    if (optParams.gridSteps.size()>0) {
+        nSteps = optParams.gridSteps;
     }
 
-    if (optParameters.normalize) {
-        normalizationMins = optParameters.searchSpaceMinBound;
-        normalizationRanges = optParameters.searchSpaceMaxBound - normalizationMins;
-        int nOptVars = optParameters.searchSpaceMaxBound.rows();
+    if (optParams.normalize) {
+        normalizationMins = optParams.searchSpaceMinBound;
+        normalizationRanges = optParams.searchSpaceMaxBound - normalizationMins;
+        int nOptVars = optParams.searchSpaceMaxBound.rows();
         minVec = Eigen::VectorXd::Zero(nOptVars);
         maxVec = Eigen::VectorXd::Ones(nOptVars);
-        gpCenters = (gpCenters.colwise() - normalizationMins).array() / normalizationRanges.replicate(1,gpCenters.cols()).array();
+        optVars = (optVars.colwise() - normalizationMins).array() / normalizationRanges.replicate(1,optVars.cols()).array();
     }
 
     searchSpaceBounds.resize(2, minVec.rows());
@@ -84,16 +69,16 @@ bopt_Solution bayesianOptimization::initialize(const Eigen::MatrixXd& centerData
 
 
 
-    if (optParameters.costCovariance.rows()>0 && optParameters.costMaxCovariance.rows()>0) {
+    if (optParams.costCovariance.rows()>0 && optParams.costMaxCovariance.rows()>0) {
 
 
-        if (optParameters.normalize) {
-            costCovariance = ((optParameters.costCovariance.diagonal() - normalizationMins).array() / normalizationRanges.array()).matrix().asDiagonal();
-            costMaxCovariance = optParameters.costMaxCovariance;
+        if (optParams.normalize) {
+            costCovariance = ((optParams.costCovariance.diagonal() - normalizationMins).array() / normalizationRanges.array()).matrix().asDiagonal();
+            costMaxCovariance = optParams.costMaxCovariance;
         }
         else {
-            costCovariance = optParameters.costCovariance;
-            costMaxCovariance = optParameters.costMaxCovariance;
+            costCovariance = optParams.costCovariance;
+            costMaxCovariance = optParams.costMaxCovariance;
         }
 
         covarianceSetByUser=true;
@@ -113,40 +98,14 @@ bopt_Solution bayesianOptimization::initialize(const Eigen::MatrixXd& centerData
 }
 
 
-
-
-bopt_Solution bayesianOptimization::update(Eigen::VectorXd& newCenters, Eigen::VectorXd& newCosts)
-{
-    if (gpCenters.rows()!=newCenters.rows())
-    {
-        newCenters.transposeInPlace();
-    }
-    return update(Eigen::MatrixXd(newCenters), Eigen::MatrixXd(newCosts.transpose()));
-}
-
-bopt_Solution bayesianOptimization::update(Eigen::VectorXd& newCenters, Eigen::MatrixXd& newCosts)
-{
-    if (gpCenters.rows()!=newCenters.rows())
-    {
-        newCenters.transposeInPlace();
-    }
-    return update(Eigen::MatrixXd(newCenters), newCosts);
-}
-
-bopt_Solution bayesianOptimization::update(Eigen::MatrixXd& newCenters, Eigen::VectorXd& newCosts)
-{
-    return update(newCenters, Eigen::MatrixXd(newCosts.transpose()));
-}
-
-
-bopt_Solution bayesianOptimization::update(const Eigen::MatrixXd& newCenters, const Eigen::MatrixXd& newCosts)
+optSolution bayesianOptimization::doUpdate(const Eigen::MatrixXd& newCenters, const Eigen::MatrixXd& newCosts)
 {
     Eigen::MatrixXd _newCenters = newCenters;
-    if (optParameters.normalize) {
+    if (optParams.normalize) {
         _newCenters = (_newCenters - normalizationMins).array() / normalizationRanges.array();
     }
-    gpCenters = hStack(gpCenters, _newCenters);
-    gpTrainingData = hStack(gpTrainingData, newCosts);
+    optVars = hStack(optVars, _newCenters);
+    optVarCosts = hStack(optVarCosts, newCosts);
 
 
 
@@ -155,7 +114,7 @@ bopt_Solution bayesianOptimization::update(const Eigen::MatrixXd& newCenters, co
     return solve();
 }
 
-bopt_Solution bayesianOptimization::solve()
+optSolution bayesianOptimization::solve()
 {
 
     numberOfIterations++;
@@ -174,19 +133,19 @@ bopt_Solution bayesianOptimization::solve()
 
     currentSolution.nIter = numberOfIterations;
 
-    bool isConfident = (currentSolution.currentConfidence>= optParameters.minConfidence);
-    bool isMaxIter = (currentSolution.nIter >= optParameters.maxIter);
+    bool isConfident = (currentSolution.currentConfidence>= optParams.minConfidence);
+    bool isMaxIter = (currentSolution.nIter >= optParams.maxIter);
     currentSolution.optimumFound = isConfident || isMaxIter;
 
-    if (optParameters.logData) {
+    if (optParams.logData) {
         logOptimizationData();
     }
 
-    if (optParameters.normalize) {
+    if (optParams.normalize) {
         currentSolution.optimalParameters = (currentSolution.optimalParameters.array() * normalizationRanges.array()).matrix() + normalizationMins;
     }
 
-    if (!optParameters.silenceOutput)
+    if (!optParams.silenceOutput)
     {
         if (currentSolution.optimumFound) {
             if (isConfident) {
@@ -200,7 +159,7 @@ bopt_Solution bayesianOptimization::solve()
             }
             if (isMaxIter) {
                 std::cout << "\n================================================================================\n";
-                std::cout << "\tWARNING: Maximum number of iterations ("<< optParameters.maxIter <<") exceeded.";
+                std::cout << "\tWARNING: Maximum number of iterations ("<< optParams.maxIter <<") exceeded.";
                 std::cout << "\n================================================================================\n";
                 std::cout << "\tCurrent optimum = " << currentSolution.currentMinCost << std::endl;
                 std::cout << "\tConfidence = " << currentSolution.currentConfidence  << "%"<< std::endl;
@@ -244,38 +203,38 @@ double bayesianOptimization::tauFunction(const int t)
 
 void bayesianOptimization::updateGaussianProcess()
 {
-    costGP->setKernelCenters(gpCenters);
-    costGP->setKernelTrainingData(gpTrainingData);
+    costGP->setKernelCenters(optVars);
+    costGP->setKernelTrainingData(optVarCosts);
     /* An attempt to scale costs from 0-1; Doesn't work well.
-    if (optParameters.normalize) {
+    if (optParams.normalize) {
 
-        Eigen::MatrixXd gpTrainingDataNormalized;
+        Eigen::MatrixXd optVarCostsNormalized;
 
-        if (gpTrainingData.cols()==1) {
-            gpTrainingDataNormalized = Eigen::MatrixXd::Ones(gpTrainingData.rows(), gpTrainingData.cols());
+        if (optVarCosts.cols()==1) {
+            optVarCostsNormalized = Eigen::MatrixXd::Ones(optVarCosts.rows(), optVarCosts.cols());
         }
         else{
-            gpTrainingDataNormalized = (gpTrainingData.colwise() - gpTrainingData.rowwise().minCoeff()).array() / (gpTrainingData.rowwise().maxCoeff() - gpTrainingData.rowwise().minCoeff()).replicate(1,gpTrainingData.cols()).array();
+            optVarCostsNormalized = (optVarCosts.colwise() - optVarCosts.rowwise().minCoeff()).array() / (optVarCosts.rowwise().maxCoeff() - optVarCosts.rowwise().minCoeff()).replicate(1,optVarCosts.cols()).array();
         }
 
-        costGP->setKernelTrainingData(gpTrainingDataNormalized);
+        costGP->setKernelTrainingData(optVarCostsNormalized);
     }
     else {
-        costGP->setKernelTrainingData(gpTrainingData);
+        costGP->setKernelTrainingData(optVarCosts);
     }
     */
 
 
     if (covarianceSetByUser)
     {
-        bool test1 = costCovariance.rows() == gpCenters.rows();
+        bool test1 = costCovariance.rows() == optVars.rows();
         bool test2 = costMaxCovariance.rows() == 1;
         if (test1 && test2) {
             costGP->setCovarianceMatrix(costCovariance);
             costGP->setMaxCovariance(costMaxCovariance);
         }else{
             if (!test1) {
-                smltError("Provided kernel covariance matrix dimension (" << costCovariance.rows() <<"x"<< costCovariance.cols() << ") does not match kernel dimension ("<<  gpCenters.rows() << ").");
+                smltError("Provided kernel covariance matrix dimension (" << costCovariance.rows() <<"x"<< costCovariance.cols() << ") does not match kernel dimension ("<<  optVars.rows() << ").");
             }
             if (!test2) {
                 smltError("Provided kernel maximum covariance vector dimension (" << costMaxCovariance.rows()<< ") is greater than 1.");
@@ -284,14 +243,14 @@ void bayesianOptimization::updateGaussianProcess()
     }
     else
     {
-        Eigen::MatrixXd covMat = calculateCovariance(gpCenters, true).array().abs();//*10.0;
+        Eigen::MatrixXd covMat = calculateCovariance(optVars, true).array().abs();//*10.0;
         std::cout << "\ncovMat\n" << covMat << std::endl;
         costGP->setCovarianceMatrix(covMat);
-        if (gpTrainingData.rows()==1) {
+        if (optVarCosts.rows()==1) {
             costGP->setMaxCovariance(1.0);
 
         }else{
-            costGP->setMaxCovariance(getVariance(Eigen::MatrixXd(gpTrainingData.transpose())));
+            costGP->setMaxCovariance(getVariance(Eigen::MatrixXd(optVarCosts.transpose())));
 
         }
     }
@@ -304,17 +263,17 @@ void bayesianOptimization::updateGaussianProcess()
 void bayesianOptimization::createDataLog()
 {
 
-    optLogPath = optParameters.dataLogDir + "/optimization_log-" + currentDateTime() +"/";
+    optLogPath = optParams.dataLogDir + "/optimization_log-" + currentDateTime() +"/";
     checkAndCreateDirectory(optLogPath);
 
     std::ofstream pathFile;
-    pathFile.open((optParameters.dataLogDir+"/latestLogPath.txt").c_str());
+    pathFile.open((optParams.dataLogDir+"/latestLogPath.txt").c_str());
     pathFile << optLogPath;
     pathFile.close();
 
     std::ofstream optParamsFile;
     optParamsFile.open((optLogPath+"/optParams.txt").c_str());
-    optParamsFile << optParameters;
+    optParamsFile << optParams;
     optParamsFile.close();
 }
 
@@ -346,9 +305,9 @@ void bayesianOptimization::logOptimizationData()
     tauFile.open((currentIterDir+"tau.txt").c_str());
 
 
-    gpParamsFile                <<  gpCenters;
+    gpParamsFile                <<  optVars;
     gpWeightsFile               <<  costGP->getWeights();
-    gpCostsFile                 <<  gpTrainingData;
+    gpCostsFile                 <<  optVarCosts;
 
     minIndexFile                <<  currentSolution.minIndex;
     optimumFoundFile            <<  currentSolution.optimumFound;

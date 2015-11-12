@@ -1,6 +1,7 @@
 #include <iostream>
 #include "Eigen/Dense"
 #include "smlt/bayesianOptimization.hpp"
+#include "smlt/nonlinearSolver.hpp"
 #include <stdlib.h>
 
 
@@ -25,7 +26,7 @@ int main(int argc, char const *argv[])
     Eigen::VectorXd costData = costFunction(centerData);
 
 
-    bopt_Parameters bopt_params = bopt_Parameters();
+    optParameters bopt_params = optParameters();
 
     bopt_params.searchSpaceMinBound = Eigen::VectorXd::Constant(1, 0.1);
     bopt_params.searchSpaceMaxBound = Eigen::VectorXd::Constant(1, 8.0);
@@ -36,19 +37,19 @@ int main(int argc, char const *argv[])
 
     bopt_params.dataLogDir = "/home/ryan/Code/smlt/tmp3/";
 
-    bayesianOptimization bopt_solver = bayesianOptimization(bopt_params);
+    nonlinearSolver* bopt_solver = new bayesianOptimization(bopt_params);
 
-    bopt_Solution bopt_solution;
+    optSolution optSolution;
 
-    bopt_solution = bopt_solver.initialize(centerData, costData);
+    optSolution = bopt_solver->initialize(centerData, costData);
 
-    while (!bopt_solution.optimumFound) {
+    while (!optSolution.optimumFound) {
 
         //evalutate new parameters:
-        Eigen::VectorXd newCost = costFunction(bopt_solution.optimalParameters);
+        Eigen::VectorXd newCost = costFunction(optSolution.optimalParameters);
 
 
-        bopt_solution = bopt_solver.update(bopt_solution.optimalParameters, newCost);
+        optSolution = bopt_solver->update(optSolution.optimalParameters, newCost);
 
     }
 

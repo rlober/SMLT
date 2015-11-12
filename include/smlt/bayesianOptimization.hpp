@@ -12,84 +12,15 @@
 
 #include "smlt/smltUtilities.hpp"
 #include "smlt/gaussianProcess.hpp"
+#include "smlt/nonlinearSolver.hpp"
 
 namespace smlt
 {
-    struct bopt_Solution
-    {
-        bool optimumFound; // Whether or not an optimum has been found through either minConfidence or maxIter
-        double currentMinCost;  // The current minimum cost.
-        double currentConfidence; // The current confidence in the minimum cost found.
-        int nIter; // The number of optimization iterations so far
-        int minIndex; // The index of the minimum LCB value.
 
-        Eigen::VectorXd optimalParameters; // The best parameters to use in the cost function.
-    };
-
-    struct bopt_Parameters
-    {
-        bopt_Parameters() // Set optimization parameters to their default values.
-        {
-            logData = true;
-            dataLogDir = "./";
-            silenceOutput = false;
-            minConfidence = 99.99;
-            maxIter = 50;
-            normalize = false;
-        }
-        bool logData;
-        bool silenceOutput; // no cout statements
-        double minConfidence;
-        int maxIter;
-        std::string dataLogDir;
-        Eigen::VectorXd searchSpaceMinBound;
-        Eigen::VectorXd searchSpaceMaxBound;
-        Eigen::VectorXd gridSpacing;
-        Eigen::VectorXi gridSteps;
-        Eigen::MatrixXd costCovariance;
-        Eigen::VectorXd costMaxCovariance;
-        bool normalize;
-
-
-        friend std::ostream& operator<<(std::ostream &out, const bopt_Parameters& params)
-        {
-            out << "logData = " << params.logData << std::endl;
-            out << "dataLogDir = " << params.dataLogDir << std::endl;
-            out << "silenceOutput = " << params.silenceOutput << std::endl;
-            out << "minConfidence = " << params.minConfidence << std::endl;
-            out << "maxIter = " << params.maxIter << std::endl;
-            out << "searchSpaceMinBound = " << params.searchSpaceMinBound.transpose() << std::endl;
-            out << "searchSpaceMaxBound = " << params.searchSpaceMaxBound.transpose() << std::endl;
-            out << "gridSpacing = " << params.gridSpacing.transpose() << std::endl;
-            out << "gridSteps = " << params.gridSteps.transpose() << std::endl;
-            out << "normalize = " << params.normalize << std::endl;
-            return out;
-        }
-
-
-    };
-
-    class bayesianOptimization
+    class bayesianOptimization : public nonlinearSolver
     {
     public:
-        bayesianOptimization(const bopt_Parameters optParams);
-
-        bopt_Solution initialize(const Eigen::VectorXd& centerData, const Eigen::VectorXd& costData);
-        bopt_Solution initialize(const Eigen::VectorXd& centerData, const Eigen::MatrixXd& costData);
-        bopt_Solution initialize(const Eigen::MatrixXd& centerData, const Eigen::VectorXd& costData);
-
-        bopt_Solution initialize(const Eigen::MatrixXd& centerData, const Eigen::MatrixXd& costData);
-
-
-        bopt_Solution update(Eigen::VectorXd& newCenters, Eigen::VectorXd& newCosts);
-        bopt_Solution update(Eigen::VectorXd& newCenters, Eigen::MatrixXd& newCosts);
-        bopt_Solution update(Eigen::MatrixXd& newCenters, Eigen::VectorXd& newCosts);
-
-        bopt_Solution update(const Eigen::MatrixXd& newCenters, const Eigen::MatrixXd& newCosts);
-
-
-        bopt_Solution solve();
-
+        bayesianOptimization(const optParameters optParams);
 
         void setLoggerStatus(const bool logOptData=true);
 
@@ -98,6 +29,15 @@ namespace smlt
 
 
     protected:
+
+        virtual optSolution doInit(const Eigen::MatrixXd& optVariables, const Eigen::MatrixXd& costs);
+
+        virtual optSolution doUpdate(const Eigen::MatrixXd& newOptVariables, const Eigen::MatrixXd& newCosts);
+
+        optSolution solve();
+
+
+
         void updateGaussianProcess();
         void minimizeAcquistionFunction(int& optimalIndex);
         double tauFunction(const int t);
@@ -108,7 +48,7 @@ namespace smlt
         std::string optLogPath;
         double tau;
         Eigen::MatrixXd LCB;
-        bopt_Solution currentSolution;
+        optSolution currentSolution;
 
         gaussianProcess* costGP;        /*!< The gaussian process estimating the cost function. */
         int numberOfIterations;         /*!< The current number of iterations of the optimization.*/
@@ -118,10 +58,8 @@ namespace smlt
         Eigen::MatrixXd searchSpace;    /*!< The hyperrectangular search space of the optimization. */
         Eigen::MatrixXd searchSpaceBounds;
 
-        bopt_Parameters optParameters;
 
-        Eigen::MatrixXd gpCenters;
-        Eigen::MatrixXd gpTrainingData;
+        
 
         Eigen::MatrixXd currentCostMeans;
         Eigen::MatrixXd currentCostVariances;
