@@ -224,6 +224,10 @@ void bayesianOptimization::minimizeAcquistionFunction(int& optimalIndex)
 {
     tau = tauFunction(numberOfIterations);
     LCB = currentCostMeans - sqrt(tau)*currentCostVariances;
+    // double ccmMin = currentCostMeans.minCoeff();
+    // double ccmMax = currentCostMeans.maxCoeff();
+    // double ccmRange = ccmMax - ccmMin;
+    // LCB = (currentCostMeans.array() - ccmMin).matrix()/(ccmRange) - sqrt(tau)*currentCostVariances;
 
     Eigen::MatrixXd::Index dummy, idx;
     LCB.minCoeff(&dummy, &idx);
@@ -242,6 +246,24 @@ void bayesianOptimization::updateGaussianProcess()
 {
     costGP->setKernelCenters(gpCenters);
     costGP->setKernelTrainingData(gpTrainingData);
+    /* An attempt to scale costs from 0-1; Doesn't work well.
+    if (optParameters.normalize) {
+
+        Eigen::MatrixXd gpTrainingDataNormalized;
+
+        if (gpTrainingData.cols()==1) {
+            gpTrainingDataNormalized = Eigen::MatrixXd::Ones(gpTrainingData.rows(), gpTrainingData.cols());
+        }
+        else{
+            gpTrainingDataNormalized = (gpTrainingData.colwise() - gpTrainingData.rowwise().minCoeff()).array() / (gpTrainingData.rowwise().maxCoeff() - gpTrainingData.rowwise().minCoeff()).replicate(1,gpTrainingData.cols()).array();
+        }
+
+        costGP->setKernelTrainingData(gpTrainingDataNormalized);
+    }
+    else {
+        costGP->setKernelTrainingData(gpTrainingData);
+    }
+    */
 
 
     if (covarianceSetByUser)
@@ -262,7 +284,7 @@ void bayesianOptimization::updateGaussianProcess()
     }
     else
     {
-        Eigen::MatrixXd covMat = calculateCovariance(gpCenters, true).array().abs()*10.0;
+        Eigen::MatrixXd covMat = calculateCovariance(gpCenters, true).array().abs();//*10.0;
         std::cout << "\ncovMat\n" << covMat << std::endl;
         costGP->setCovarianceMatrix(covMat);
         if (gpTrainingData.rows()==1) {
