@@ -262,14 +262,19 @@ void bayesianOptimization::updateGaussianProcess()
 
 void bayesianOptimization::createDataLog()
 {
-
-    optLogPath = optParams.dataLogDir + "/optimization_log-" + currentDateTime() +"/";
-    checkAndCreateDirectory(optLogPath);
-
     std::ofstream pathFile;
-    pathFile.open((optParams.dataLogDir+"/latestLogPath.txt").c_str());
-    pathFile << optLogPath;
-    pathFile.close();
+    std::string latestLogPathFilePath;
+
+    if (optParams.dataLogDir=="") {
+        optLogPath = optParams.dataLogDirPrefix + "/optimization_log-" + currentDateTime() +"/";
+        latestLogPathFilePath = optParams.dataLogDirPrefix+"/latestLogPath.txt";
+        pathFile.open(latestLogPathFilePath.c_str());
+        pathFile << optLogPath;
+        pathFile.close();
+    }else{
+        optLogPath = optParams.dataLogDirPrefix + "/"+ optParams.dataLogDir +"/";
+    }
+    checkAndCreateDirectory(optLogPath);
 
     std::ofstream optParamsFile;
     optParamsFile.open((optLogPath+"/optParams.txt").c_str());

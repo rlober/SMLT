@@ -28,7 +28,8 @@ namespace smlt
         optParameters() // Set optimization parameters to their default values.
         {
             logData = true;
-            dataLogDir = "./";
+            dataLogDirPrefix = "./";
+            dataLogDir = "";
             silenceOutput = false;
             minConfidence = 99.99;
             maxIter = 50;
@@ -38,6 +39,7 @@ namespace smlt
         bool silenceOutput; // no cout statements
         double minConfidence;
         int maxIter;
+        std::string dataLogDirPrefix;
         std::string dataLogDir;
         Eigen::VectorXd searchSpaceMinBound;
         Eigen::VectorXd searchSpaceMaxBound;
@@ -51,6 +53,7 @@ namespace smlt
         friend std::ostream& operator<<(std::ostream &out, const optParameters& params)
         {
             out << "logData = " << params.logData << std::endl;
+            out << "dataLogDirPrefix = " << params.dataLogDirPrefix << std::endl;
             out << "dataLogDir = " << params.dataLogDir << std::endl;
             out << "silenceOutput = " << params.silenceOutput << std::endl;
             out << "minConfidence = " << params.minConfidence << std::endl;
