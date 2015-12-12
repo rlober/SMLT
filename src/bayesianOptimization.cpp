@@ -10,6 +10,7 @@ nonlinearSolver(_optParams)
     if (optParams.logData) {
         createDataLog();
     }
+    covarianceScalingFactor = 1.0;
 }
 
 optSolution bayesianOptimization::doInit(const Eigen::MatrixXd& centerData, const Eigen::MatrixXd& costData)
@@ -243,7 +244,8 @@ void bayesianOptimization::updateGaussianProcess()
     }
     else
     {
-        Eigen::MatrixXd covMat = calculateCovariance(optVars, true).array().abs();//*10.0;
+        Eigen::MatrixXd covMat = calculateCovariance(optVars, true).array().abs();
+        covMat *= covarianceScalingFactor;//*10.0 works well
         std::cout << "\ncovMat\n" << covMat << std::endl;
         costGP->setCovarianceMatrix(covMat);
         if (optVarCosts.rows()==1) {

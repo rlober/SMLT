@@ -14,6 +14,11 @@ namespace smlt
 {
     struct optSolution
     {
+        optSolution()
+        {
+            optimumFound = false;
+            nIter = 0;
+        }
         bool optimumFound; // Whether or not an optimum has been found through either minConfidence or maxIter
         double currentMinCost;  // The current minimum cost.
         double currentConfidence; // The current confidence in the minimum cost found.
@@ -85,6 +90,7 @@ namespace smlt
         optSolution update(Eigen::MatrixXd& newOptVariables, Eigen::VectorXd& newCosts);
         optSolution update(const Eigen::MatrixXd& newOptVariables, const Eigen::MatrixXd& newCosts);
 
+        void setCovarianceScalingFactor(const double newCovFac){covarianceScalingFactor = newCovFac;}
 
 
     protected:
@@ -94,6 +100,9 @@ namespace smlt
         Eigen::MatrixXd optVars;
         Eigen::MatrixXd optVarCosts;
         optParameters optParams;
+
+        double covarianceScalingFactor;
+
 
     private:
 

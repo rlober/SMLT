@@ -28,6 +28,7 @@ namespace smlt
         void recalculateSearchSpace();
 
 
+
     protected:
 
         virtual optSolution doInit(const Eigen::MatrixXd& optVariables, const Eigen::MatrixXd& costs);
@@ -59,7 +60,7 @@ namespace smlt
         Eigen::MatrixXd searchSpaceBounds;
 
 
-        
+
 
         Eigen::MatrixXd currentCostMeans;
         Eigen::MatrixXd currentCostVariances;
