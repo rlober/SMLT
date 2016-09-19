@@ -18,6 +18,10 @@ optSolution bayesianOptimization::doInit(const Eigen::MatrixXd& centerData, cons
 
     optVars = centerData;
     optVarCosts = costData;
+
+    optVarCostScalingFactor = optVarCosts.maxCoeff();
+    optVarCosts /= optVarCostScalingFactor;
+
     numberOfIterations = 0;
 
     Eigen::VectorXd minVec;
@@ -59,8 +63,8 @@ optSolution bayesianOptimization::doInit(const Eigen::MatrixXd& centerData, cons
         optVars = (optVars.colwise() - normalizationMins).array() / normalizationRanges.replicate(1,optVars.cols()).array();
     }
 
-    searchSpaceBounds.resize(2, minVec.rows());
-    searchSpaceBounds << minVec.transpose(), maxVec.transpose();
+    searchSpaceBounds.resize(2, optParams.searchSpaceMinBound.rows());
+    searchSpaceBounds << optParams.searchSpaceMinBound.transpose(), optParams.searchSpaceMaxBound.transpose();
 
 
     discretizeSearchSpace(minVec, maxVec, nSteps, searchSpace);
@@ -102,11 +106,15 @@ optSolution bayesianOptimization::doInit(const Eigen::MatrixXd& centerData, cons
 optSolution bayesianOptimization::doUpdate(const Eigen::MatrixXd& newCenters, const Eigen::MatrixXd& newCosts)
 {
     Eigen::MatrixXd _newCenters = newCenters;
+    Eigen::MatrixXd _newCosts = newCosts;
     if (optParams.normalize) {
         _newCenters = (_newCenters - normalizationMins).array() / normalizationRanges.array();
     }
     optVars = hStack(optVars, _newCenters);
-    optVarCosts = hStack(optVarCosts, newCosts);
+
+    _newCosts/=optVarCostScalingFactor;
+    // _newCosts
+    optVarCosts = hStack(optVarCosts, _newCosts);
 
 
 
@@ -198,8 +206,8 @@ double bayesianOptimization::tauFunction(const int t)
 {
     double d = 1.0; // determines the upper asymptote of the function.
     double delta = 1.0; // Essentially does nothing. basically Adjusts the starting value when t = 0
-
-    return 2.0*log(pow((double)t, ((d/2.0)+2.0)) + (pow(M_PI, 2.0) / 3.0*delta) );
+    double iterDouble = (double)t;
+    return 2.0*std::log(std::pow(iterDouble, ((d/2.0)+2.0)) + (std::pow(M_PI, 2.0) / 3.0*delta) );
 }
 
 void bayesianOptimization::updateGaussianProcess()
@@ -248,13 +256,16 @@ void bayesianOptimization::updateGaussianProcess()
         covMat *= covarianceScalingFactor;//*10.0 works well
         std::cout << "\ncovMat\n" << covMat << std::endl;
         costGP->setCovarianceMatrix(covMat);
-        if (optVarCosts.rows()==1) {
-            costGP->setMaxCovariance(1.0);
-
-        }else{
-            costGP->setMaxCovariance(getVariance(Eigen::MatrixXd(optVarCosts.transpose())));
-
-        }
+        std::cout << "optVarCosts: " << optVarCosts << std::endl;
+        costGP->setMaxCovariance(1.0);
+        //
+        // if (optVarCosts.cols()==1) {
+        //     costGP->setMaxCovariance(1.0);
+        //     std::cout << "Using 1.0" << std::endl;
+        // }else{
+        //     costGP->setMaxCovariance(getVariance(Eigen::MatrixXd(optVarCosts.transpose())));
+        //     std::cout << "Using " << getVariance(Eigen::MatrixXd(optVarCosts.transpose())) << std::endl;
+        // }
     }
 
 

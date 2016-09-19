@@ -73,6 +73,8 @@ namespace smlt
 
         bool covarianceSetByUser;
 
+        double optVarCostScalingFactor;
+
     private:
 
     };
